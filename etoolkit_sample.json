@@ -1,0 +1,21 @@
+{
+    "general": {
+        "MASTER_PASSWORD_HASH": "pbkdf2_sha256$100000$kFOQkAPtStZ/Ny/O4501ygHGQnqh5Y+ySxF9qVHriv8=$3BujuWzn3CfDnw4yiD9m3F+GjeW1MHHW40R/ThHNcn0="
+    },
+    "instances": {
+        "default": {
+            "ETOOLKIT_PROMPT": "(%i)"
+        },
+        "dev": {
+            "ETOOLKIT_PARENT": "default",
+            "PYTHONPATH": ":/home/user/.pythonpath",
+            "DB_CONNECTION": "enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT5tS9o+ABvsxogIXpJim16Gz5SVtV8="
+        },
+        "secret": {
+            "ETOOLKIT_PARENT": "default",
+            "ETOOLKIT_SENSITIVE": ["PASSWORD"],
+            "GNUPGHOME": "%h/private/.gnupg",
+            "PASSWORD": "enc-val$1$vIBcoCNiYrsDLtF41uLuSEnppBjhliD0B8jwcBJcj/c=$KwOGe/y1dlxktDaCnJPIVNuaQ4Q7yNo="
+        }
+    }
+}
