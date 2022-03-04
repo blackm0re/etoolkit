@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021 Simeon Simeonov
+# Copyright (C) 2021-2022 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 from .etoolkit import EtoolkitInstance, EtoolkitInstanceError
 
 __author__ = 'Simeon Simeonov'
-__version__ = '1.0.0'
+__version__ = '1.1.0-rc1'
 __license__ = 'GPL3'
 
 

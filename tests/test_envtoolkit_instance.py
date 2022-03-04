@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021 Simeon Simeonov
+# Copyright (C) 2021-22 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ import pytest
 import etoolkit
 
 
-def test_instantiation(config_data, password_hash):
+def test_instantiation(config_data):
     """Tests for object instatiation"""
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
         instance = etoolkit.EtoolkitInstance('devv', config_data)
@@ -32,7 +32,9 @@ def test_instantiation(config_data, password_hash):
     assert 'DB_CONNECTION' not in instance.sensitive_env_variables
     assert 'PASSWORD' in instance.sensitive_env_variables
     assert instance.name == 'secret'
-    assert instance.master_password_hash == password_hash
+    assert instance.master_password_hash == (
+        config_data['general']['MASTER_PASSWORD_HASH']
+    )
     assert instance.master_password is None
 
 

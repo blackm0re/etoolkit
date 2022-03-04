@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021 Simeon Simeonov
+# Copyright (C) 2021-2022 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,14 +24,14 @@ import etoolkit
 @unittest.mock.patch('getpass.getpass')
 def test_confirm_password_prompt(getpass, password_hash):
     """Tests the static EtoolkitInstance.confirm_password_prompt method"""
-    getpass.return_value = 'the very secret passwd'
+    getpass.return_value = 'The very secret passwd'
     assert (
         etoolkit.EtoolkitInstance.confirm_password_prompt(password_hash)
-        == 'the very secret passwd'
+        == 'The very secret passwd'
     )
     assert (
         etoolkit.EtoolkitInstance.confirm_password_prompt(password_hash, False)
-        == 'the very secret passwd'
+        == 'The very secret passwd'
     )
 
 
@@ -39,10 +39,10 @@ def test_decrypt():
     """Tests the static EtoolkitInstance.decrypt method"""
     assert (
         etoolkit.EtoolkitInstance.decrypt(
-            'the very secret passwd',
+            'The very secret passwd',
             (
-                'enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT5tS9'
-                'o+ABvsxogIXpJim16Gz5SVtV8='
+                'enc-val$1$/cXpEMoZrTlb9yokGhw8tLTSUkqnqJ4ZoAkurNgMYx'
+                'w=$1VdkSMcZnLRwLiu1M8VlYcbelwmiVNY='
             ),
         )
         == 'secret1'
@@ -51,11 +51,11 @@ def test_decrypt():
     # now test with modified edata
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
         edata = (
-            'enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT5tS9'
-            'o+ABvsxogIXpJim17Gz5SVtV8='
+            'enc-val$1$/cXpEMoZrTlb9yokGhw8tLTSUkqnqJ5ZoAkurNgMYx'
+            'w=$1VdkSMcZnLRwLiu1M8VlYcbelwmiVNY='
         )
         etoolkit.EtoolkitInstance.decrypt(
-            'the very secret passwd', edata
+            'The very secret passwd', edata
         ) == 'secret1'
     assert exc_info.type is etoolkit.EtoolkitInstanceError
     assert exc_info.value.args[0] == f'Invalid tag when decrypting: {edata}'
@@ -70,17 +70,32 @@ def test_encrypt():
     assert edata != etoolkit.EtoolkitInstance.encrypt('foo', 'bar')
 
 
+@unittest.mock.patch('os.urandom')
+def test_encrypt_staticly(urandom, non_random_bytes_32):
+    """Tests the EtoolkitInstance.encrypt method always with the same salt"""
+    urandom.return_value = non_random_bytes_32
+    edata = etoolkit.EtoolkitInstance.encrypt('The very secret passwd', 'bar')
+    assert edata == (
+        'enc-val$1$uYpZM1VfAGq0CDZL2duITs076CQj+hIFEgx+F4mn80'
+        'o=$HjPFNv6xC5hbMrFc0L5lSkWdfQ=='
+    )
+    assert edata == etoolkit.EtoolkitInstance.encrypt(
+        'The very secret passwd',
+        'bar',
+    )
+
+
 def test_get_new_password_hash():
     """Tests the static EtoolkitInstance.get_new_password_hash method"""
     new_hash = etoolkit.EtoolkitInstance.get_new_password_hash(
-        'the very secret passwd'
+        'The very secret passwd'
     )
     # all pbkdf2 params are the same / hardcoded for the time being
     assert new_hash.startswith('pbkdf2_sha256$100000$')
     assert len(new_hash) == 110
     # the hash should always be different because of random salting
     assert new_hash != etoolkit.EtoolkitInstance.get_new_password_hash(
-        'the very secret passwd'
+        'The very secret passwd'
     )
 
 
@@ -95,8 +110,8 @@ def test_parse_value():
 def test_password_matches(password_hash):
     """Tests the static EtoolkitInstance.password_matches method"""
     assert etoolkit.EtoolkitInstance.password_matches(
-        'the very secret passwd', password_hash
+        'The very secret passwd', password_hash
     )
     assert not etoolkit.EtoolkitInstance.password_matches(
-        'the very secret passwdo', password_hash
+        'The very secret passwdo', password_hash
     )

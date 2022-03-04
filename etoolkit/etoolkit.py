@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021 Simeon Simeonov
+# Copyright (C) 2021-2022 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -179,7 +179,7 @@ class EtoolkitInstance:
                 hashlib.scrypt(
                     password.encode('utf-8'),
                     salt=salt,
-                    n=2 ** 14,
+                    n=2**14,
                     r=8,
                     p=1,
                     dklen=32,
@@ -217,7 +217,7 @@ class EtoolkitInstance:
             hashlib.scrypt(
                 password.encode('utf-8'),
                 salt=salt,
-                n=2 ** 14,
+                n=2**14,
                 r=8,
                 p=1,
                 dklen=32,

@@ -117,7 +117,7 @@ file are encrypted with the same master password. Setting a master password
 hash is a recommended but not mandatory.
 
    ```bash
-   etoolkit -p
+   etoolkit --generate-master-password-hash
    ```
 
 That command will prompt for master password and output a hash that can then
@@ -127,7 +127,7 @@ The hash is only used for verifying that a correct master password has been
 provided at a later time. Issuing:
 
    ```bash
-   etoolkit -e
+   etoolkit --encrypt-value
    ```
 
 will prompt for the master password, then for the value to be encrypted and
@@ -140,14 +140,24 @@ prompt if *-m* / *--multiple-values* parameter is provided. Manual decryption
 of single value(s):
 
    ```bash
-   etoolkit -d -m
+   etoolkit --decrypt-value --multiple-values
    ```
+
+Another possibility is to pass the value to *etoolkit*'s *stdin* using a pipe.
+*etoolkit* will then only prompt for password and not for a value:
+
+   ```bash
+   echo mysecret | etoolkit --encrypt-value
+   ```
+
+... or if the *ETOOLKIT_MASTER_PASSWORD* env. variable is defined, its value
+will be used instead of prompting for password.
 
 Listing all available instances defined in the configuration file and then
 loading a specific instance can be achieved by:
 
    ```bash
-   etoolkit -l
+   etoolkit --list
    etoolkit <instance-name>
    ```
 
@@ -178,7 +188,7 @@ One can also spawn a different process than an interactive shell by using the
 *-s* / *--spawn* parameter.
 
    ```bash
-   etoolkit -s /bin/othershell <instance-name>
+   etoolkit --spawn /bin/othershell <instance-name>
    ```
 
 Contact the author for questions and suggestions! :)
@@ -264,9 +274,18 @@ file (f.i. ~/.bashrc):
 
    ```bash
    if [ -n "$ETOOLKIT_PROMPT" ]; then
-   export PS1="$ETOOLKIT_PROMPT$PS1"
+       export PS1="$ETOOLKIT_PROMPT$PS1"
    fi
    ```
+
+A quick and dirty bash completion for available instances can be set at the
+bottom of your bash startup file:
+
+   ```bash
+   complete -W '$(compgen -W "$(etoolkit -l)")' etoolkit
+   ```
+
+A complete bash completion script for *etoolkit* can be found here: [https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash](https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash)
 
 
 ## Support and contributing
@@ -281,7 +300,7 @@ Simeon Simeonov - sgs @ LiberaChat
 
 ## [License](https://github.com/blackm0re/etoolkit/blob/master/LICENSE)
 
-Copyright (c) 2021, Simeon Simeonov
+Copyright (C) 2021-2022 Simeon Simeonov
 All rights reserved.
 
 [Licensed](https://github.com/blackm0re/etoolkit/blob/master/LICENSE) under the

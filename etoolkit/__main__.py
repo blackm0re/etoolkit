@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021 Simeon Simeonov
+# Copyright (C) 2021-2022 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ python -m etoolkit -p
 import argparse
 import errno
 import getpass
+import io
 import json
 import logging
 import os
@@ -52,11 +53,29 @@ def decrypt_value(args: argparse.Namespace, config: dict):
     :type config: dict
     """
     password_hash = None
+    pipe_input = None
+    if not os.isatty(sys.stdin.fileno()):
+        pipe_input = sys.stdin.read().strip()
     if 'general' in config:
         password_hash = config['general'].get('MASTER_PASSWORD_HASH')
-    password = etoolkit.EtoolkitInstance.confirm_password_prompt(
-        password_hash, False
-    )
+
+    if (
+        args.master_password_prompt
+        or os.environ.get('ETOOLKIT_MASTER_PASSWORD') is None
+    ):
+        password = etoolkit.EtoolkitInstance.confirm_password_prompt(
+            password_hash, False
+        )
+    else:
+        password = os.environ.get('ETOOLKIT_MASTER_PASSWORD')
+
+    if pipe_input:
+        # the input came from stdin. No need to prompt
+        print(
+            'Decrypted value: '
+            f'{etoolkit.EtoolkitInstance.decrypt(password, pipe_input)}'
+        )
+        return
     while True:
         try:
             value = input('Value: ')
@@ -69,6 +88,7 @@ def decrypt_value(args: argparse.Namespace, config: dict):
         except KeyboardInterrupt:
             print(os.linesep)
             break
+    return
 
 
 def encrypt_value(args: argparse.Namespace, config: dict):
@@ -86,9 +106,29 @@ def encrypt_value(args: argparse.Namespace, config: dict):
     :type config: dict
     """
     password_hash = None
+    pipe_input = None
+    if not os.isatty(sys.stdin.fileno()):
+        pipe_input = sys.stdin.read().strip()
     if 'general' in config:
         password_hash = config['general'].get('MASTER_PASSWORD_HASH')
-    password = etoolkit.EtoolkitInstance.confirm_password_prompt(password_hash)
+
+    if (
+        args.master_password_prompt
+        or os.environ.get('ETOOLKIT_MASTER_PASSWORD') is None
+    ):
+        password = etoolkit.EtoolkitInstance.confirm_password_prompt(
+            password_hash
+        )
+    else:
+        password = os.environ.get('ETOOLKIT_MASTER_PASSWORD')
+
+    if pipe_input:
+        # the input came from stdin. No need to prompt
+        print(
+            'Encrypted value: '
+            f'{etoolkit.EtoolkitInstance.encrypt(password, pipe_input)}'
+        )
+        return
     while True:
         try:
             if args.echo:
@@ -104,6 +144,7 @@ def encrypt_value(args: argparse.Namespace, config: dict):
         except KeyboardInterrupt:
             print(os.linesep)
             break
+    return
 
 
 def main(inargs=None):
@@ -192,6 +233,16 @@ def main(inargs=None):
         ),
     )
     parser.add_argument(
+        '-P',
+        '--master-password-prompt',
+        dest='master_password_prompt',
+        action='store_true',
+        help=(
+            'Force prompt for the master password even if the env. variable '
+            '"ETOOLKIT_MASTER_PASSWORD" is set'
+        ),
+    )
+    parser.add_argument(
         '-q',
         '--no-output',
         dest='dump_output',
@@ -217,12 +268,26 @@ def main(inargs=None):
     )
     args = parser.parse_args(inargs)
     try:
-        with open(args.config_file, 'r', encoding='utf-8') as fp:
+        with io.open(args.config_file, 'r', encoding='utf-8') as fp:
             config_dict = json.load(fp)
+    except FileNotFoundError as e:
+        # do not raise exception if config-file is missing for:
+        # - decrypting value
+        # - encrypting value
+        # - password hash generation
+        if args.password_hash or args.decrypt_value or args.encrypt_value:
+            logger.warning(
+                "Configuration file %s is missing, although not required "
+                "by the provided parameters",
+                args.config_file,
+            )
+            config_dict = {}
+        else:
+            logger.error("Configuration file %s is missing", args.config_file)
+            raise SystemExit(errno.EIO) from e
     except Exception as e:
         logger.error("Unable to parse %r: %s", args.config_file, e)
         raise SystemExit(errno.EIO) from e
-
     try:
         if args.decrypt_value:
             decrypt_value(args, config_dict)
