@@ -66,7 +66,12 @@ for processes that were not spawned by that same *etoolkit* session.
 ### Gentoo
 
    ```bash
+   # add sgs' custom repository using app-eselect/eselect-repository
+   eselect repository add sgs
+
+   # ... or using layman (obsolete)
    layman -a sgs
+
    emerge dev-python/etoolkit
    ```
 
@@ -285,7 +290,11 @@ bottom of your bash startup file:
    complete -W '$(compgen -W "$(etoolkit -l)")' etoolkit
    ```
 
-A complete bash completion script for *etoolkit* can be found here: [https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash](https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash)
+A complete bash completion script for *etoolkit* can be found here:
+[https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash](https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash)
+
+
+## [Changelog](https://github.com/blackm0re/etoolkit/blob/master/CHANGELOG.md)
 
 
 ## Support and contributing
