@@ -106,11 +106,11 @@ Each instance consists of key-value pairs corresponding to env. name and value.
 All pairs will result in corresponding env. variables being defined, with the
 exception of the following *etoolkit* internal keys:
 
-- **ETOOLKIT_PARENT** - string - reference to another instance
+- *ETOOLKIT_PARENT* - string - reference to another instance
 
-- **ETOOLKIT_SENSITIVE** - list - env. variables containing sensitive data
+- *ETOOLKIT_SENSITIVE* - list - env. variables containing sensitive data
 
-All pairs defined in *"general"* (currently only **MASTER_PASSWORD_HASH**) are
+All pairs defined in *"general"* (currently only *MASTER_PASSWORD_HASH*) are
 *etoolkit* internal as well.
 
 An instance may inherit (and if desired overwrite) key value pairs from its
@@ -294,7 +294,10 @@ A complete bash completion script for *etoolkit* can be found here:
 [https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash](https://github.com/blackm0re/etoolkit/blob/master/completion/etoolkit.bash)
 
 
-## [Changelog](https://github.com/blackm0re/etoolkit/blob/master/CHANGELOG.md)
+## Changelog
+
+A complete changelog can be found at:
+[https://github.com/blackm0re/etoolkit/blob/master/CHANGELOG.md](https://github.com/blackm0re/etoolkit/blob/master/CHANGELOG.md)
 
 
 ## Support and contributing
