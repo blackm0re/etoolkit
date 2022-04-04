@@ -306,7 +306,10 @@ def main(inargs=None):
             sys.exit(0)
         if args.list:
             for instance_name in sorted(
-                config_dict.get('instances', {}).keys()
+                filter(
+                    lambda s: not s.startswith('_'),
+                    config_dict.get('instances', {}).keys(),
+                )
             ):
                 print(instance_name)
             sys.exit(0)

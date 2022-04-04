@@ -158,13 +158,16 @@ Another possibility is to pass the value to *etoolkit*'s *stdin* using a pipe.
 ... or if the *ETOOLKIT_MASTER_PASSWORD* env. variable is defined, its value
 will be used instead of prompting for password.
 
-Listing all available instances defined in the configuration file and then
+Listing available instances defined in the configuration file and then
 loading a specific instance can be achieved by:
 
    ```bash
    etoolkit --list
    etoolkit <instance-name>
    ```
+
+Instances with names starting with *_* will be considered *abstract* and will
+not be displayed by *--list*.
 
 *etoolkit* will prompt for the master password the first time it encounters
 and encrypted value. Once provided the master password will be used to decrypt
