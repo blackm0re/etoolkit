@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021-22 Simeon Simeonov
+# Copyright (C) 2021-2022 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -63,4 +63,13 @@ def test_get_environ(config_data):
 def test_get_full_name(config_data):
     """Tests the EtoolkitInstance.get_full_name method"""
     instance = etoolkit.EtoolkitInstance('secret', config_data)
-    assert instance.get_full_name('->') == 'default->secret'
+    assert instance.get_full_name('->') == '_default->secret'
+
+
+def test_parent_vars(config_data):
+    """Tests the EtoolkitInstance.get_full_name method"""
+    instance = etoolkit.EtoolkitInstance('dev', config_data)
+    assert instance.get_full_name('->') == '_default->dev'
+    assert instance.get_environ()['PYTHONPATH'] == (
+        '/home/foo/_default/python:/home/user/dev/.pythonpath'
+    )

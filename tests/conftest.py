@@ -30,17 +30,16 @@ def config_data():
             )
         },
         'instances': {
-            'default': {'ETOOLKIT_PROMPT': '(%i)'},
+            '_default': {
+                'ETOOLKIT_PROMPT': '(%i)',
+                'PYTHONPATH': '/home/foo/%i/python',
+            },
             'dev': {
-                'ETOOLKIT_PARENT': 'default',
-                'PYTHONPATH': ':/home/user/.pythonpath',
-                'DB_CONNECTION': (
-                    'enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT'
-                    '5tS9o+ABvsxogIXpJim16Gz5SVtV8='
-                ),
+                'ETOOLKIT_PARENT': '_default',
+                'PYTHONPATH': '%p:/home/user/%i/.pythonpath',
             },
             'secret': {
-                'ETOOLKIT_PARENT': 'default',
+                'ETOOLKIT_PARENT': '_default',
                 'ETOOLKIT_SENSITIVE': ['PASSWORD'],
                 'GNUPGHOME': '%h/private/.gnupg',
                 'PASSWORD': (

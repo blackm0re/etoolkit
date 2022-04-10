@@ -179,7 +179,9 @@ corresponding values. Currently the following macros are supported:
 
 - **%h** - the home directory of the user running *etoolkit* (~/)
 
-- **%i** - the names of the instance that is about to be loaded
+- **%i** - the name of the instance that is about to be loaded
+
+- **%p** - the parent value (for the same key)
 
 - **%u** - the username of the user running *etoolkit* (*getpass.getuser()*)
 
@@ -234,16 +236,16 @@ or the *instances* structure being loaded from a diferent configuration file
        "general": {
        },
        "instances": {
-           "default": {
-               "ETOOLKIT_PROMPT": "(%i)"
+           "_default": {
+               "ETOOLKIT_PROMPT": "(%i)",
+               "PYTHONPATH": "/home/user/%i/python",
            },
            "dev": {
-               "ETOOLKIT_PARENT": "default",
-               "PYTHONPATH": ":/home/user/.pythonpath",
-               "DB_CONNECTION": "enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT5tS9o+ABvsxogIXpJim16Gz5SVtV8="
+               "ETOOLKIT_PARENT": "_default",
+               "PYTHONPATH": "%p:/home/user/%i/.pythonpath",
            },
            "secret": {
-               "ETOOLKIT_PARENT": "default",
+               "ETOOLKIT_PARENT": "_default",
                "ETOOLKIT_SENSITIVE": ["PASSWORD"],
                "GNUPGHOME": "%h/private/.gnupg",
                "PASSWORD": "enc-val$1$vIBcoCNiYrsDLtF41uLuSEnppBjhliD0B8jwcBJcj/c=$KwOGe/y1dlxktDaCnJPIVNuaQ4Q7yNo="

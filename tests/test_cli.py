@@ -89,9 +89,7 @@ def test_list(capsys, config_file):
         main(['-c', f'{config_file}', '-l'])
     assert exit_info.type == SystemExit
     assert exit_info.value.code == 0
-    assert capsys.readouterr().out.strip() == (
-        f'default{os.linesep}dev{os.linesep}secret'
-    )
+    assert capsys.readouterr().out.strip() == f'dev{os.linesep}secret'
 
 
 def test_help(capsys):

@@ -342,6 +342,12 @@ class EtoolkitInstance:
             if not value:
                 # perhaps unset instead of skipping?
                 continue
+            if isinstance(value, str) and '%p' in value:
+                macros['%p'] = (
+                    self._parent.get_environ().get(key, '')
+                    if self._parent is not None
+                    else ''
+                )
             if isinstance(value, str) and value.startswith('enc-val$1$'):
                 value = self._decrypt_value(value)
             if isinstance(value, str) and value.endswith(':'):
