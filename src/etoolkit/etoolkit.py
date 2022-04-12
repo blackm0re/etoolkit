@@ -75,12 +75,16 @@ class EtoolkitInstance:
     @property
     def master_password(self) -> str:
         """master_password-property"""
-        return self._master_password
+        if self._master_password is not None:
+            return self._master_password
+        return None if self._parent is None else self._parent.master_password
 
     @master_password.setter
     def master_password(self, value):
         """master_password-property setter"""
         self._master_password = value
+        if self._parent is not None and self._parent.master_password is None:
+            self._parent.master_password = value
 
     @property
     def master_password_hash(self) -> str:
@@ -106,6 +110,9 @@ class EtoolkitInstance:
     def prompt_func(self, value):
         """prompt_func-property setter"""
         self._prompt_func = value
+        if self._parent is not None and self._parent.prompt_func is None:
+            # will be set even if None
+            self._parent.prompt_func = value
 
     @property
     def raw_env_variables(self) -> dict:
@@ -406,7 +413,8 @@ class EtoolkitInstance:
                 raise EtoolkitInstanceError(
                     'Neither password or prompt function set'
                 )
-            self._master_password = self._prompt_func(
+            # use master_password setter in order to propagate to parent
+            self.master_password = self._prompt_func(
                 self._master_password_hash, confirm=False
             )
         return EtoolkitInstance.decrypt(self._master_password, evalue)
