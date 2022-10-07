@@ -28,6 +28,7 @@ import io
 import json
 import logging
 import os
+import subprocess
 import sys
 
 import etoolkit
@@ -324,15 +325,18 @@ def main(inargs=None):
         os.environ.update(env)
 
         if args.spawn:
-            os.system(args.spawn)
+            subprocess.run(args.spawn.split(), check=True)
         else:
-            os.system(os.getenv('SHELL', 'bash'))
+            subprocess.run(os.environ.get('SHELL', 'bash').split(), check=True)
     except KeyboardInterrupt:
         logger.debug('KeyboardInterrupt')
         print(os.linesep)
         sys.exit(0)
     except etoolkit.EtoolkitInstanceError as e:
         logger.error('EtoolkitInstanceError: %s', e)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        logger.error('Unable to spawn shell process: %s', e)
         sys.exit(1)
     except Exception as e:
         logger.error('Unexpected exception: %s', e)
