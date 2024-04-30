@@ -23,24 +23,26 @@ import etoolkit
 
 
 @unittest.mock.patch('getpass.getpass')
-def test_confirm_password_prompt(getpass, password_hash):
+def test_confirm_password_prompt(getpass, password_hash, master_password):
     """Tests the static EtoolkitInstance.confirm_password_prompt method"""
-    getpass.return_value = 'The very secret passwd'
+
+    getpass.return_value = master_password
     assert (
         etoolkit.EtoolkitInstance.confirm_password_prompt(password_hash)
-        == 'The very secret passwd'
+        == master_password
     )
     assert (
         etoolkit.EtoolkitInstance.confirm_password_prompt(password_hash, False)
-        == 'The very secret passwd'
+        == master_password
     )
 
 
-def test_decrypt_v1():
+def test_decrypt_v1(master_password):
     """Tests the static EtoolkitInstance.decrypt method"""
+
     assert (
         etoolkit.EtoolkitInstance.decrypt(
-            'The very secret passwd',
+            master_password,
             (
                 'enc-val$1$/cXpEMoZrTlb9yokGhw8tLTSUkqnqJ4ZoAkurNgMYx'
                 'w=$1VdkSMcZnLRwLiu1M8VlYcbelwmiVNY='
@@ -55,16 +57,17 @@ def test_decrypt_v1():
         'w=$1VdkSMcZnLRwLiu1M8VlYcbelwmiVNY='
     )
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
-        etoolkit.EtoolkitInstance.decrypt('The very secret passwd', edata)
+        etoolkit.EtoolkitInstance.decrypt(master_password, edata)
     assert exc_info.type is etoolkit.EtoolkitInstanceError
     assert exc_info.value.args[0] == f'Invalid tag when decrypting: {edata}'
 
 
-def test_decrypt_v2_no_padding():
+def test_decrypt_v2_no_padding(master_password):
     """Tests the static EtoolkitInstance.decrypt method for v2 - no padding"""
+
     assert (
         etoolkit.EtoolkitInstance.decrypt(
-            'The very secret passwd',
+            master_password,
             (
                 'enc-val$2$Wer5lECGyeZhhYS58N18WVx5Zzy+rrC+BPlq3Dw89wQ=$'
                 'SQc0ox6Emf2m5rrumsiptpIZEujdpXXSR/'
@@ -81,16 +84,17 @@ def test_decrypt_v2_no_padding():
         '1VcfEZeBz4+KDSagr9ID+bkc4R2yFdxHnhig1eqQ8='
     )
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
-        etoolkit.EtoolkitInstance.decrypt('The very secret passwd', edata)
+        etoolkit.EtoolkitInstance.decrypt(master_password, edata)
     assert exc_info.type is etoolkit.EtoolkitInstanceError
     assert exc_info.value.args[0] == f'Invalid tag when decrypting: {edata}'
 
 
-def test_decrypt_v2_with_padding():
+def test_decrypt_v2_with_padding(master_password):
     """Tests the static EtoolkitInstance.decrypt method for v2 with padding"""
+
     assert (
         etoolkit.EtoolkitInstance.decrypt(
-            'The very secret passwd',
+            master_password,
             (
                 'enc-val$2$//kzyUbDEWNoPC5dyukhB8de8+IVaLR2ngx2HwkfOuM=$'
                 'rhRona4wP9nhnXjcHqwkjFDsiVVVjYanAs'
@@ -106,39 +110,44 @@ def test_decrypt_v2_with_padding():
         'rhRona4wP8nhnXjcHqwkjFDsiVVVjYanAsN4kknNkgC0ix4RtJQHYDeTzw1rrR1vb2w='
     )
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
-        etoolkit.EtoolkitInstance.decrypt('The very secret passwd', edata)
+        etoolkit.EtoolkitInstance.decrypt(master_password, edata)
     assert exc_info.type is etoolkit.EtoolkitInstanceError
     assert exc_info.value.args[0] == f'Invalid tag when decrypting: {edata}'
 
 
-def test_encrypt_no_padding():
+def test_encrypt_no_padding(master_password):
     """Tests the static EtoolkitInstance.encrypt method with a long string"""
+
     edata = etoolkit.EtoolkitInstance.encrypt(
-        'foo', 'Nobody expects the Spanish inquisition'
+        master_password, 'Nobody expects the Spanish inquisition'
     )
     assert edata.startswith('enc-val$2$')
     assert len(edata) == 131
     # the edata should always be different because of random salting
     assert edata != etoolkit.EtoolkitInstance.encrypt(
-        'foo', 'Nobody expects the Spanish inquisition'
+        master_password, 'Nobody expects the Spanish inquisition'
     )
 
 
-def test_encrypt_with_padding():
+def test_encrypt_with_padding(master_password):
     """Tests the static EtoolkitInstance.encrypt method with a short string"""
-    edata = etoolkit.EtoolkitInstance.encrypt('foo', 'bar')
+
+    edata = etoolkit.EtoolkitInstance.encrypt(master_password, 'bar')
     assert edata.startswith('enc-val$2$')
     assert len(edata) == 123
     # the edata should always be different because of random salting
-    assert edata != etoolkit.EtoolkitInstance.encrypt('foo', 'bar')
+    assert edata != etoolkit.EtoolkitInstance.encrypt(master_password, 'bar')
 
 
 @unittest.mock.patch('os.urandom')
-def test_encrypt_staticly_no_padding(urandom, non_random_bytes_32):
+def test_encrypt_staticly_no_padding(
+    urandom, master_password, non_random_bytes_32
+):
     """Tests the EtoolkitInstance.encrypt method always with the same salt"""
+
     urandom.return_value = non_random_bytes_32
     edata = etoolkit.EtoolkitInstance.encrypt(
-        'The very secret passwd', 'Nobody expects the Spanish inquisition'
+        master_password, 'Nobody expects the Spanish inquisition'
     )
     assert edata == (
         'enc-val$2$uYpZM1VfAGq0CDZL2duITs076CQj+hIFEgx+F4mn80o=$'
@@ -147,51 +156,55 @@ def test_encrypt_staticly_no_padding(urandom, non_random_bytes_32):
     )
     assert len(edata) == 131
     assert edata == etoolkit.EtoolkitInstance.encrypt(
-        'The very secret passwd', 'Nobody expects the Spanish inquisition'
+        master_password, 'Nobody expects the Spanish inquisition'
     )
 
 
 @unittest.mock.patch('os.urandom')
-def test_encrypt_staticly_with_padding(urandom, non_random_bytes_61):
+def test_encrypt_staticly_with_padding(
+    urandom, master_password, non_random_bytes_61
+):
     """Tests the EtoolkitInstance.encrypt method always with the same salt"""
+
     urandom.return_value = non_random_bytes_61
-    edata = etoolkit.EtoolkitInstance.encrypt('The very secret passwd', 'bar')
+    edata = etoolkit.EtoolkitInstance.encrypt(master_password, 'bar')
     assert edata == (
         'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviqrLTBxM=$'
         '+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/ESvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
     )
-    assert edata == etoolkit.EtoolkitInstance.encrypt(
-        'The very secret passwd', 'bar'
-    )
+    assert edata == etoolkit.EtoolkitInstance.encrypt(master_password, 'bar')
 
 
-def test_get_new_password_hash():
+def test_get_new_password_hash(master_password):
     """Tests the static EtoolkitInstance.get_new_password_hash method"""
-    new_hash = etoolkit.EtoolkitInstance.get_new_password_hash(
-        'The very secret passwd'
-    )
+
+    new_hash = etoolkit.EtoolkitInstance.get_new_password_hash(master_password)
     # all pbkdf2 params are the same / hardcoded for the time being
     assert new_hash.startswith('pbkdf2_sha256$500000$')
     assert len(new_hash) == 110
     # the hash should always be different because of random salting
     assert new_hash != etoolkit.EtoolkitInstance.get_new_password_hash(
-        'The very secret passwd'
+        master_password
     )
 
 
 def test_parse_value():
     """Tests the static EtoolkitInstance.parse_value method"""
+
     assert (
         etoolkit.EtoolkitInstance.parse_value('t%bs%t', {'%b': 'e', '%t': 't'})
         == 'test'
     )
 
 
-def test_password_matches(password_hash):
+def test_password_matches(
+    password_hash, master_password, wrong_master_password
+):
     """Tests the static EtoolkitInstance.password_matches method"""
+
     assert etoolkit.EtoolkitInstance.password_matches(
-        'The very secret passwd', password_hash
+        master_password, password_hash
     )
     assert not etoolkit.EtoolkitInstance.password_matches(
-        'The very secret passwdo', password_hash
+        wrong_master_password, password_hash
     )

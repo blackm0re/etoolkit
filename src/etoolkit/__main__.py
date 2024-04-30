@@ -319,7 +319,13 @@ def main(inargs=None):
             sys.exit(0)
 
         inst = etoolkit.EtoolkitInstance(args.instance, config_dict)
-        inst.prompt_func = etoolkit.EtoolkitInstance.confirm_password_prompt
+        if (
+            args.master_password_prompt
+            or os.environ.get('ETOOLKIT_MASTER_PASSWORD') is None
+        ):
+            inst.prompt_func = (
+                etoolkit.EtoolkitInstance.confirm_password_prompt
+            )
         env = inst.get_environ()
 
         if args.dump_output:
@@ -328,9 +334,11 @@ def main(inargs=None):
         os.environ.update(env)
 
         if args.spawn:
-            subprocess.run(args.spawn.split(), check=True)
+            subprocess.run(args.spawn.split(), check=False)
         else:
-            subprocess.run(os.environ.get('SHELL', 'bash').split(), check=True)
+            subprocess.run(
+                os.environ.get('SHELL', 'bash').split(), check=False
+            )
     except KeyboardInterrupt:
         logger.debug('KeyboardInterrupt')
         print(os.linesep)

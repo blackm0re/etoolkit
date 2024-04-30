@@ -22,6 +22,7 @@ import etoolkit
 
 def test_instantiation(config_data):
     """Tests for object instatiation"""
+
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
         instance = etoolkit.EtoolkitInstance('devv', config_data)
     assert exc_info.type is etoolkit.EtoolkitInstanceError
@@ -31,7 +32,7 @@ def test_instantiation(config_data):
     assert 'ETOOLKIT_PARENT' not in instance.raw_env_variables
     assert 'ETOOLKIT_SENSITIVE' not in instance.raw_env_variables
     assert 'DB_CONNECTION' not in instance.sensitive_env_variables
-    assert 'PASSWORD' in instance.sensitive_env_variables
+    assert 'ETOOLKIT_TEST_PASSWORD' in instance.sensitive_env_variables
     assert instance.name == 'secret'
     assert (
         instance.master_password_hash
@@ -40,15 +41,16 @@ def test_instantiation(config_data):
     assert instance.master_password is None
 
 
-def test_get_environ(config_data):
+def test_get_environ(config_data, master_password, wrong_master_password):
     """Tests the EtoolkitInstance.get_environ method"""
+
     instance = etoolkit.EtoolkitInstance('secret', config_data)
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
         env = instance.get_environ()
     assert exc_info.type is etoolkit.EtoolkitInstanceError
     assert exc_info.value.args[0] == 'Neither password or prompt function set'
 
-    instance.master_password = 'The very secret passwd'  # wrong passwd
+    instance.master_password = wrong_master_password
     with pytest.raises(etoolkit.EtoolkitInstanceError) as exc_info:
         env = instance.get_environ()
     assert exc_info.type is etoolkit.EtoolkitInstanceError
@@ -56,22 +58,24 @@ def test_get_environ(config_data):
         'Invalid tag when decrypting: enc-val$'
     )
 
-    instance.master_password = 'the very secret passwd'  # correct passwd
+    instance.master_password = master_password
     env = instance.get_environ()
     assert isinstance(env, dict)
-    assert env['PASSWORD'] == 'secret2'
+    assert env['ETOOLKIT_TEST_PASSWORD'] == 'bar'
 
 
 def test_get_full_name(config_data):
     """Tests the EtoolkitInstance.get_full_name method"""
+
     instance = etoolkit.EtoolkitInstance('secret', config_data)
     assert instance.get_full_name('->') == '_default->secret'
 
 
 def test_parent_vars(config_data):
     """Tests the EtoolkitInstance.get_full_name method"""
+
     instance = etoolkit.EtoolkitInstance('dev', config_data)
     assert instance.get_full_name('->') == '_default->dev'
-    assert instance.get_environ()['PYTHONPATH'] == (
+    assert instance.get_environ()['ETOOLKIT_TEST_PYTHONPATH'] == (
         '/home/foo/_default/python:/home/user/dev/.pythonpath'
     )

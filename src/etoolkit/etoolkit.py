@@ -385,7 +385,7 @@ class EtoolkitInstance:
                     if self._parent is not None
                     else ''
                 )
-            if isinstance(value, str) and value.startswith('enc-val$1$'):
+            if isinstance(value, str) and value.startswith('enc-val$'):
                 value = self._decrypt_value(value)
             if isinstance(value, str) and value.endswith(':'):
                 # if 'value' ends with ':', append the existing value of
@@ -440,11 +440,16 @@ class EtoolkitInstance:
         """
         if self._master_password is None:
             if self._prompt_func is None:
-                raise EtoolkitInstanceError(
-                    'Neither password or prompt function set'
+                if (
+                    mp_from_env := os.environ.get('ETOOLKIT_MASTER_PASSWORD')
+                ) is None:
+                    raise EtoolkitInstanceError(
+                        'Neither password or prompt function set'
+                    )
+                self.master_password = mp_from_env
+            else:
+                # use master_password setter in order to propagate to parent
+                self.master_password = self._prompt_func(
+                    self._master_password_hash, confirm=False
                 )
-            # use master_password setter in order to propagate to parent
-            self.master_password = self._prompt_func(
-                self._master_password_hash, confirm=False
-            )
         return EtoolkitInstance.decrypt(self._master_password, evalue)

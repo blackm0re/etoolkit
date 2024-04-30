@@ -27,26 +27,27 @@ def config_data():
     return {
         'general': {
             'MASTER_PASSWORD_HASH': (
-                'pbkdf2_sha256$100000$uYpZM1VfAGq0CDZL2duITs076CQj+hIFEgx+F4m'
-                'n80o=$h3PSPLCd37fP15zKdW4CBGn7CXE+q5UiydaF3vbeZHo='
+                'pbkdf2_sha256$500000$UY3o78KUM1Btzxk3k3JCsijnwtJ2lx+hH9Newp'
+                'VKxo8=$tHwDm8OVKanC4DoYTigTCb0R3lQIa/CbBYj0B3TZtHg='
             )
         },
         'instances': {
             '_default': {
                 'ETOOLKIT_PROMPT': '(%i)',
-                'PYTHONPATH': '/home/foo/%i/python',
+                'ETOOLKIT_TEST_PYTHONPATH': '/home/foo/%i/python',
             },
             'dev': {
                 'ETOOLKIT_PARENT': '_default',
-                'PYTHONPATH': '%p:/home/user/%i/.pythonpath',
+                'ETOOLKIT_TEST_PYTHONPATH': '%p:/home/user/%i/.pythonpath',
             },
             'secret': {
                 'ETOOLKIT_PARENT': '_default',
-                'ETOOLKIT_SENSITIVE': ['PASSWORD'],
+                'ETOOLKIT_SENSITIVE': ['ETOOLKIT_TEST_PASSWORD'],
                 'GNUPGHOME': '%h/private/.gnupg',
-                'PASSWORD': (
-                    'enc-val$1$vIBcoCNiYrsDLtF41uLuSEnppBjhliD0B8jwcBJcj/c=$Kw'
-                    'OGe/y1dlxktDaCnJPIVNuaQ4Q7yNo='
+                'ETOOLKIT_TEST_PASSWORD': (
+                    'enc-val$2$v6F2M7LeUDbQWNLg6WW5mUcbuYYo7aGynSxzWAENVBI=$'
+                    'ZcyWzf9Kp0aYI8N+biKMSmu4RGGi199ayq'
+                    'EYdJl+qdq7b1HSutwYlC7UR2GsSofu4Xo='
                 ),
             },
         },
@@ -55,11 +56,17 @@ def config_data():
 
 @pytest.fixture()
 def config_file(tmp_path, config_data):
-    """temporary config file for testing that includes config_data"""
+    """Temporary config file for testing that includes config_data"""
 
     cf = tmp_path / 'etoolkit.json'
     cf.write_text(json.dumps(config_data))
     return str(cf)
+
+
+@pytest.fixture()
+def master_password():
+    """Master passord"""
+    return 'The very secret passwd'
 
 
 @pytest.fixture()
@@ -95,6 +102,12 @@ def password_hash():
     """password hash for testing, corresponding to 'The very secret passwd'"""
 
     return (
-        'pbkdf2_sha256$100000$uYpZM1VfAGq0CDZL2duITs076CQj+hIFEgx+F4mn80o=$h3'
-        'PSPLCd37fP15zKdW4CBGn7CXE+q5UiydaF3vbeZHo='
+        'pbkdf2_sha256$500000$UY3o78KUM1Btzxk3k3JCsijnwtJ2lx+hH9NewpVKxo8=$'
+        'tHwDm8OVKanC4DoYTigTCb0R3lQIa/CbBYj0B3TZtHg='
     )
+
+
+@pytest.fixture()
+def wrong_master_password():
+    """Wrong master passord"""
+    return 'the very secret passwd'

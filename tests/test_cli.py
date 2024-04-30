@@ -26,14 +26,15 @@ from etoolkit.__main__ import main
 
 
 @unittest.mock.patch('builtins.input')
-def test_decrypt_v1(binput, capsys, config_file):
+def test_decrypt_v1(binput, capsys, config_file, master_password):
     """Tests v1 decryption via the CLI interface"""
+
     binput.return_value = (
-        'enc-val$1$uYpZM1VfAGq0CDZL2duITs076CQj+'
-        'hIFEgx+F4mn80o=$xdF/1S+R2MGlEQMCOLG6OjEuzw=='
+        'enc-val$1$rye0sMGEnd35gOWyISE1FQa6dzS+8/jf6aopMO5tPr4=$'
+        'RjnRY0bUJWFOiejTlM3OhKNimQ=='
     )
     with unittest.mock.patch.dict(
-        os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
+        os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
         with pytest.raises(SystemExit) as exit_info:
             main(['-c', f'{config_file}', '-d'])
@@ -43,15 +44,16 @@ def test_decrypt_v1(binput, capsys, config_file):
 
 
 @unittest.mock.patch('builtins.input')
-def test_decrypt_v2(binput, capsys, config_file):
+def test_decrypt_v2(binput, capsys, config_file, master_password):
     """Tests v2 decryption via the CLI interface"""
+
     binput.return_value = (
         'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
-        'rLTBxM=$VW3UZ6l12yDtyaqWHb7i0QEDiS9s9np'
-        '7huAACK54BtZVV7RZoIhbu4K6zZuz+LRCyio='
+        'rLTBxM=$+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/E'
+        'SvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
     )
     with unittest.mock.patch.dict(
-        os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
+        os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
         with pytest.raises(SystemExit) as exit_info:
             main(['-c', f'{config_file}', '-d'])
@@ -61,12 +63,16 @@ def test_decrypt_v2(binput, capsys, config_file):
 
 
 @unittest.mock.patch('os.urandom')
-@unittest.mock.patch('builtins.input', lambda *args: 'bar')
-def test_encrypt_with_echo(urandom, capsys, non_random_bytes_61, config_file):
+@unittest.mock.patch('builtins.input')
+def test_encrypt_with_echo(
+    binput, urandom, capsys, non_random_bytes_61, config_file, master_password
+):
     """Tests encryption via the CLI interface"""
+
+    binput.return_value = 'bar'
     urandom.return_value = non_random_bytes_61
     with unittest.mock.patch.dict(
-        os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
+        os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
         with pytest.raises(SystemExit) as exit_info:
             main(['-c', f'{config_file}', '-e', '-E'])
@@ -74,18 +80,22 @@ def test_encrypt_with_echo(urandom, capsys, non_random_bytes_61, config_file):
         assert exit_info.value.code == 0
         assert capsys.readouterr().out.strip() == (
             'Encrypted value: enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
-            'rLTBxM=$VW3UZ6l12yDtyaqWHb7i0QEDiS9s9np'
-            '7huAACK54BtZVV7RZoIhbu4K6zZuz+LRCyio='
+            'rLTBxM=$+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/E'
+            'SvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
         )
 
 
 @unittest.mock.patch('os.urandom')
-@unittest.mock.patch('getpass.getpass', lambda *args: 'bar')
-def test_encrypt_without_echo(gpass, capsys, non_random_bytes_61, config_file):
+@unittest.mock.patch('getpass.getpass')
+def test_encrypt_without_echo(
+    getpass, urandom, capsys, non_random_bytes_61, config_file, master_password
+):
     """Tests encryption via the CLI interface"""
-    gpass.return_value = non_random_bytes_61
+
+    getpass.return_value = 'bar'
+    urandom.return_value = non_random_bytes_61
     with unittest.mock.patch.dict(
-        os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
+        os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
         with pytest.raises(SystemExit) as exit_info:
             main(['-c', f'{config_file}', '-e'])
@@ -93,13 +103,25 @@ def test_encrypt_without_echo(gpass, capsys, non_random_bytes_61, config_file):
         assert exit_info.value.code == 0
         assert capsys.readouterr().out.strip() == (
             'Encrypted value: enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
-            'rLTBxM=$VW3UZ6l12yDtyaqWHb7i0QEDiS9s9np'
-            '7huAACK54BtZVV7RZoIhbu4K6zZuz+LRCyio='
+            'rLTBxM=$+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/E'
+            'SvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
         )
+
+
+def test_fetch_encrypted_value(config_file, master_password):
+    """Tests decryption of encrypted value"""
+
+    with unittest.mock.patch.dict(
+        os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
+    ):
+        assert os.environ.get('ETOOLKIT_TEST_PASSWORD') is None
+        main(['-c', f'{config_file}', '-q', '-s', '/bin/false', 'secret'])
+        assert os.environ.get('ETOOLKIT_TEST_PASSWORD') == 'bar'
 
 
 def test_list(capsys, config_file, nonexistent_config_file):
     """Tests list via the CLI interface"""
+
     with pytest.raises(SystemExit) as exit_info:
         main(['-c', nonexistent_config_file, '-l'])
     assert exit_info.type == SystemExit
@@ -113,6 +135,7 @@ def test_list(capsys, config_file, nonexistent_config_file):
 
 def test_help(capsys):
     """Dummy test checking if the CLI is available at all"""
+
     with pytest.raises(SystemExit) as exit_info:
         main(['-h'])
     assert exit_info.type == SystemExit
@@ -123,11 +146,12 @@ def test_help(capsys):
 @unittest.mock.patch('os.urandom')
 @unittest.mock.patch('getpass.getpass')
 def test_generate_master_password_hash(
-    gpass, urandom, capsys, non_random_bytes_32
+    getpass, urandom, capsys, non_random_bytes_32
 ):
     """Tests master password hash generation via the CLI interface"""
+
+    getpass.return_value = 'The very secret passwd'
     urandom.return_value = non_random_bytes_32
-    gpass.return_value = 'The very secret passwd'
     with pytest.raises(SystemExit) as exit_info:
         main(['--generate-master-password-hash'])
     assert exit_info.type == SystemExit
@@ -140,6 +164,7 @@ def test_generate_master_password_hash(
 
 def test_version(capsys):
     """Dummy test checking if the CLI is available at all"""
+
     with pytest.raises(SystemExit) as exit_info:
         main(['-v'])
     assert exit_info.type == SystemExit
