@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021-2022 Simeon Simeonov
+# Copyright (C) 2021-2024 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,11 +16,14 @@
 """
 CLI entry point for the etoolkit package
 
-Examples:
+Examples
+--------
 python -m etoolkit -h
 
 python -m etoolkit -p
+
 """
+
 import argparse
 import errno
 import getpass
@@ -33,7 +36,7 @@ import sys
 
 import etoolkit
 
-DEFAULT_LOG_FORMAT = "%(levelname)s: %(message)s"
+DEFAULT_LOG_FORMAT = '%(levelname)s: %(message)s'
 DEFAULT_LOG_LEVEL = logging.WARNING
 
 logger = logging.getLogger(__name__)
@@ -269,7 +272,7 @@ def main(inargs=None):
     )
     args = parser.parse_args(inargs)
     try:
-        with io.open(args.config_file, 'r', encoding='utf-8') as fp:
+        with io.open(args.config_file, encoding='utf-8') as fp:
             config_dict = json.load(fp)
     except FileNotFoundError as e:
         # do not raise exception if config-file is missing for:
@@ -278,16 +281,16 @@ def main(inargs=None):
         # - password hash generation
         if args.password_hash or args.decrypt_value or args.encrypt_value:
             logger.warning(
-                "Configuration file %s is missing, although not required "
-                "by the provided parameters",
+                'Configuration file %s is missing, although not required '
+                'by the provided parameters',
                 args.config_file,
             )
             config_dict = {}
         else:
-            logger.error("Configuration file %s is missing", args.config_file)
+            logger.error('Configuration file %s is missing', args.config_file)
             raise SystemExit(errno.EIO) from e
     except Exception as e:
-        logger.error("Unable to parse %r: %s", args.config_file, e)
+        logger.exception('Unable to parse %r', args.config_file)
         raise SystemExit(errno.EIO) from e
     try:
         if args.decrypt_value:
@@ -338,8 +341,8 @@ def main(inargs=None):
     except subprocess.CalledProcessError as e:
         logger.error('Unable to spawn shell process: %s', e)
         sys.exit(1)
-    except Exception as e:
-        logger.error('Unexpected exception: %s', e)
+    except Exception:
+        logger.exception('Unexpected exception')
         sys.exit(1)
 
 

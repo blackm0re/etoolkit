@@ -21,7 +21,7 @@ goals were set:
 
 ## Requirements
 
-Apart from Python >= 3.7, the only requirement is
+Apart from Python >= 3.8, the only requirement is
 [cryptography](https://pypi.org/project/cryptography/)
 
 
@@ -317,7 +317,7 @@ Simeon Simeonov - sgs @ LiberaChat
 
 ## [License](https://github.com/blackm0re/etoolkit/blob/master/LICENSE)
 
-Copyright (C) 2021-2022 Simeon Simeonov
+Copyright (C) 2021-2024 Simeon Simeonov
 All rights reserved.
 
 [Licensed](https://github.com/blackm0re/etoolkit/blob/master/LICENSE) under the

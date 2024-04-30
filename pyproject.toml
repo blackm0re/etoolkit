@@ -13,3 +13,6 @@ addopts = "-s"
 testpaths = [
     "tests"
 ]
+pythonpath = [
+  "src"
+]

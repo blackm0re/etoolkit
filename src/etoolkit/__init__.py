@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021-2022 Simeon Simeonov
+# Copyright (C) 2021-2024 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """A simple toolkit for setting environment variables in a flexible way"""
+
 from .etoolkit import EtoolkitInstance, EtoolkitInstanceError
 
 __author__ = 'Simeon Simeonov'
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 __license__ = 'GPL3'
 
 

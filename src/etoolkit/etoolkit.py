@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021-2022 Simeon Simeonov
+# Copyright (C) 2021-2024 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """The main module of the etoolkit package"""
+
 import base64
 import getpass
 import hashlib
@@ -21,6 +22,9 @@ import os
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+
+MIN_ENCRYPTED_VALUE_LENGTH = 32
 
 
 class EtoolkitInstanceError(Exception):
@@ -175,24 +179,33 @@ class EtoolkitInstance:
         :rtype: str
         """
         # check for supported versions
-        if not edata.startswith('enc-val$1$'):
+        if not edata.startswith(('enc-val$1$', 'enc-val$2$')):
             raise EtoolkitInstanceError(
                 f'Unsupported encryption format: {edata}'
             )
         try:
-            salt, data = [base64.b64decode(t) for t in edata[10:].split('$')]
+            salt, data = (base64.b64decode(t) for t in edata[10:].split('$'))
             nonce = salt[:12]
             aesgcm = AESGCM(
                 hashlib.scrypt(
-                    password.encode('utf-8'),
-                    salt=salt,
-                    n=2**14,
-                    r=8,
-                    p=1,
-                    dklen=32,
+                    password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32
                 )
             )
-            return aesgcm.decrypt(nonce, data, salt).decode()
+
+            # decrypt
+            data = aesgcm.decrypt(nonce, data, salt)
+
+            if edata.startswith('enc-val$2$'):
+                # exclusively for the v2 data format:
+                # padding_length_bytes(2 bytes) data padding (between 0 and 32)
+
+                # extract padding_length_bytes
+                if data[:2] == b'--':
+                    data = data[2:]
+                else:
+                    data = data[2 : -int(data[:2].decode())]
+
+            return data.decode()
         except InvalidTag as e:
             raise EtoolkitInstanceError(
                 f'Invalid tag when decrypting: {edata}'
@@ -207,6 +220,8 @@ class EtoolkitInstance:
         """
         Encrypts `data` using `password`.
 
+        Version 2 of the etoolkit encryption format
+
         The output string is in the following format:
         enc-val$`version-num`$`bas64-salt`$`base64-encrypted_data`
 
@@ -219,21 +234,37 @@ class EtoolkitInstance:
         :return: The output string
         :rtype: str
         """
-        salt = os.urandom(32)
-        aesgcm = AESGCM(
-            hashlib.scrypt(
-                password.encode('utf-8'),
-                salt=salt,
-                n=2**14,
-                r=8,
-                p=1,
-                dklen=32,
+        data_bytes = data.encode()
+        if len(data_bytes) < MIN_ENCRYPTED_VALUE_LENGTH:
+            padding_length = MIN_ENCRYPTED_VALUE_LENGTH - len(data_bytes)
+            rnd_bytes = os.urandom(32 + padding_length)
+            salt = rnd_bytes[:32]
+            aesgcm = AESGCM(
+                hashlib.scrypt(
+                    password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32
+                )
             )
-        )
-        nonce = salt[:12]
-        edata = aesgcm.encrypt(nonce, data.encode('utf-8'), salt)
+            nonce = rnd_bytes[:12]
+            padding_bytes = rnd_bytes[32:]
+            # padding_length_bytes is always 2 bytes
+            padding_length_bytes = f'{padding_length:02d}'.encode()
+            edata = aesgcm.encrypt(
+                nonce, padding_length_bytes + data_bytes + padding_bytes, salt
+            )
+        else:
+            salt = os.urandom(32)
+            aesgcm = AESGCM(
+                hashlib.scrypt(
+                    password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32
+                )
+            )
+            nonce = salt[:12]
+            padding_length_bytes = b'--'  # no padding used 2 bytes "sign"
+            edata = aesgcm.encrypt(
+                nonce, padding_length_bytes + data_bytes, salt
+            )
         return (
-            f'enc-val$1${base64.b64encode(salt).decode()}$'
+            f'enc-val$2${base64.b64encode(salt).decode()}$'
             f'{base64.b64encode(edata).decode()}'
         )
 
@@ -252,7 +283,7 @@ class EtoolkitInstance:
         :rtype: str
         """
         hash_algo = 'sha256'
-        iterations = 100000
+        iterations = 500000
         salt = os.urandom(32)
         key = hashlib.pbkdf2_hmac(
             hash_algo, password.encode('utf-8'), salt, iterations
@@ -339,7 +370,6 @@ class EtoolkitInstance:
         macros = {
             '%h': os.path.expanduser('~'),
             '%i': self.name,
-            # '%f': self.get_full_name(),
             '%u': getpass.getuser(),
         }
         new_env = {}

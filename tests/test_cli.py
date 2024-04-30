@@ -1,5 +1,5 @@
 # etoolkit
-# Copyright (C) 2021-2022 Simeon Simeonov
+# Copyright (C) 2021-2024 Simeon Simeonov
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CLI (etoolkit.__main__"""
+
 import errno
 import os
 import unittest.mock
@@ -24,11 +25,9 @@ import etoolkit
 from etoolkit.__main__ import main
 
 
-@unittest.mock.patch('os.urandom')
 @unittest.mock.patch('builtins.input')
-def test_decrypt(binput, urandom, capsys, non_random_bytes_32, config_file):
-    """Tests encryption via the CLI interface"""
-    urandom.return_value = non_random_bytes_32
+def test_decrypt_v1(binput, capsys, config_file):
+    """Tests v1 decryption via the CLI interface"""
     binput.return_value = (
         'enc-val$1$uYpZM1VfAGq0CDZL2duITs076CQj+'
         'hIFEgx+F4mn80o=$xdF/1S+R2MGlEQMCOLG6OjEuzw=='
@@ -43,11 +42,29 @@ def test_decrypt(binput, urandom, capsys, non_random_bytes_32, config_file):
         assert capsys.readouterr().out.strip() == 'Decrypted value: bar'
 
 
+@unittest.mock.patch('builtins.input')
+def test_decrypt_v2(binput, capsys, config_file):
+    """Tests v2 decryption via the CLI interface"""
+    binput.return_value = (
+        'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
+        'rLTBxM=$VW3UZ6l12yDtyaqWHb7i0QEDiS9s9np'
+        '7huAACK54BtZVV7RZoIhbu4K6zZuz+LRCyio='
+    )
+    with unittest.mock.patch.dict(
+        os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
+    ):
+        with pytest.raises(SystemExit) as exit_info:
+            main(['-c', f'{config_file}', '-d'])
+        assert exit_info.type == SystemExit
+        assert exit_info.value.code == 0
+        assert capsys.readouterr().out.strip() == 'Decrypted value: bar'
+
+
 @unittest.mock.patch('os.urandom')
 @unittest.mock.patch('builtins.input', lambda *args: 'bar')
-def test_encrypt_with_echo(urandom, capsys, non_random_bytes_32, config_file):
+def test_encrypt_with_echo(urandom, capsys, non_random_bytes_61, config_file):
     """Tests encryption via the CLI interface"""
-    urandom.return_value = non_random_bytes_32
+    urandom.return_value = non_random_bytes_61
     with unittest.mock.patch.dict(
         os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
     ):
@@ -56,16 +73,17 @@ def test_encrypt_with_echo(urandom, capsys, non_random_bytes_32, config_file):
         assert exit_info.type == SystemExit
         assert exit_info.value.code == 0
         assert capsys.readouterr().out.strip() == (
-            'Encrypted value: enc-val$1$uYpZM1VfAGq0CDZL2duITs076CQj+'
-            'hIFEgx+F4mn80o=$xdF/1S+R2MGlEQMCOLG6OjEuzw=='
+            'Encrypted value: enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
+            'rLTBxM=$VW3UZ6l12yDtyaqWHb7i0QEDiS9s9np'
+            '7huAACK54BtZVV7RZoIhbu4K6zZuz+LRCyio='
         )
 
 
 @unittest.mock.patch('os.urandom')
 @unittest.mock.patch('getpass.getpass', lambda *args: 'bar')
-def test_encrypt_without_echo(gpass, capsys, non_random_bytes_32, config_file):
+def test_encrypt_without_echo(gpass, capsys, non_random_bytes_61, config_file):
     """Tests encryption via the CLI interface"""
-    gpass.return_value = non_random_bytes_32
+    gpass.return_value = non_random_bytes_61
     with unittest.mock.patch.dict(
         os.environ, {'ETOOLKIT_MASTER_PASSWORD': 'the very secret passwd'}
     ):
@@ -74,19 +92,20 @@ def test_encrypt_without_echo(gpass, capsys, non_random_bytes_32, config_file):
         assert exit_info.type == SystemExit
         assert exit_info.value.code == 0
         assert capsys.readouterr().out.strip() == (
-            'Encrypted value: enc-val$1$uYpZM1VfAGq0CDZL2duITs076CQj+'
-            'hIFEgx+F4mn80o=$xdF/1S+R2MGlEQMCOLG6OjEuzw=='
+            'Encrypted value: enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
+            'rLTBxM=$VW3UZ6l12yDtyaqWHb7i0QEDiS9s9np'
+            '7huAACK54BtZVV7RZoIhbu4K6zZuz+LRCyio='
         )
 
 
-def test_list(capsys, config_file):
+def test_list(capsys, config_file, nonexistent_config_file):
     """Tests list via the CLI interface"""
     with pytest.raises(SystemExit) as exit_info:
-        main(['-l'])
+        main(['-c', nonexistent_config_file, '-l'])
     assert exit_info.type == SystemExit
     assert exit_info.value.code == errno.EIO
     with pytest.raises(SystemExit) as exit_info:
-        main(['-c', f'{config_file}', '-l'])
+        main(['-c', config_file, '-l'])
     assert exit_info.type == SystemExit
     assert exit_info.value.code == 0
     assert capsys.readouterr().out.strip() == f'dev{os.linesep}secret'
@@ -104,10 +123,7 @@ def test_help(capsys):
 @unittest.mock.patch('os.urandom')
 @unittest.mock.patch('getpass.getpass')
 def test_generate_master_password_hash(
-    gpass,
-    urandom,
-    capsys,
-    non_random_bytes_32,
+    gpass, urandom, capsys, non_random_bytes_32
 ):
     """Tests master password hash generation via the CLI interface"""
     urandom.return_value = non_random_bytes_32
@@ -117,8 +133,8 @@ def test_generate_master_password_hash(
     assert exit_info.type == SystemExit
     assert exit_info.value.code == 0
     assert capsys.readouterr().out.strip() == (
-        'Master password hash: pbkdf2_sha256$100000$uYpZM1VfAGq0CDZL2duITs076'
-        'CQj+hIFEgx+F4mn80o=$h3PSPLCd37fP15zKdW4CBGn7CXE+q5UiydaF3vbeZHo='
+        'Master password hash: pbkdf2_sha256$500000$uYpZM1VfAGq0CDZL2duITs076'
+        'CQj+hIFEgx+F4mn80o=$Msl8/5nOBj0TRchykMzXmCXR8VQVyBqUPHe1PDWeJi8='
     )
 
 
