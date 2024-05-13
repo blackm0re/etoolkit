@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0](https://github.com/blackm0re/etoolkit/tree/2.0.0) (2024-05-13)
+
+[Full Changelog](https://github.com/blackm0re/etoolkit/compare/1.2.0...2.0.0)
+
+**Changes:**
+
+- etoolkit encryption format v2, adding rnd. padding for values < 32 bytes
+
+- re-encryption support
+
+- replaced *os.system* with *subprocess*
+
+- new etoolkit.EtoolkitInstance API (not compatible with v1)
+
+
 ## [1.2.0](https://github.com/blackm0re/etoolkit/tree/1.2.0) (2022-04-04)
 
 [Full Changelog](https://github.com/blackm0re/etoolkit/compare/1.1.0...1.2.0)

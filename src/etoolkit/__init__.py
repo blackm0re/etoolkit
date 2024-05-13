@@ -18,7 +18,7 @@
 from .etoolkit import EtoolkitInstance, EtoolkitInstanceError
 
 __author__ = 'Simeon Simeonov'
-__version__ = '1.3.0'
+__version__ = '2.0.0'
 __license__ = 'GPL3'
 
 

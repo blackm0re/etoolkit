@@ -1,21 +1,21 @@
 {
     "general": {
-        "MASTER_PASSWORD_HASH": "pbkdf2_sha256$100000$kFOQkAPtStZ/Ny/O4501ygHGQnqh5Y+ySxF9qVHriv8=$3BujuWzn3CfDnw4yiD9m3F+GjeW1MHHW40R/ThHNcn0="
+        "MASTER_PASSWORD_HASH": "pbkdf2_sha256$500000$UY3o78KUM1Btzxk3k3JCsijnwtJ2lx+hH9NewpVKxo8=$tHwDm8OVKanC4DoYTigTCb0R3lQIa/CbBYj0B3TZtHg="
     },
     "instances": {
-        "default": {
-            "ETOOLKIT_PROMPT": "(%i)"
+        "_default": {
+          "ETOOLKIT_PROMPT": "(%i)",
+          "ETOOLKIT_SENSITIVE": ["DB_CONNECTION", "ETOOLKIT_TEST_PASSWORD"]
         },
         "dev": {
-            "ETOOLKIT_PARENT": "default",
+            "ETOOLKIT_PARENT": "_default",
             "PYTHONPATH": ":/home/user/.pythonpath",
-            "DB_CONNECTION": "enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT5tS9o+ABvsxogIXpJim16Gz5SVtV8="
+            "DB_CONNECTION": "enc-val$2$RAgDei59tUvDAkrBmxROqRaV/NxNFEI2eJIOP7sG/b8=$yse7zawHCzQCU31sZj4oJYLGonz1M7oqHqCilXLHkywa9nMPALypmVzi3QekekYuLeb5XVTmmp84NHoPn1M052otoRHSp+TMPsqBPRabfriIKEK4XQ=="
         },
         "secret": {
-            "ETOOLKIT_PARENT": "default",
-            "ETOOLKIT_SENSITIVE": ["PASSWORD"],
+            "ETOOLKIT_PARENT": "_default",
             "GNUPGHOME": "%h/private/.gnupg",
-            "PASSWORD": "enc-val$1$vIBcoCNiYrsDLtF41uLuSEnppBjhliD0B8jwcBJcj/c=$KwOGe/y1dlxktDaCnJPIVNuaQ4Q7yNo="
+            "ETOOLKIT_TEST_PASSWORD": "enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviqrLTBxM=$+YYrZbwTBuG0Pl+WMQrvxLUtq5j8qYuQqzoIwgoGt7AaWZCJz+E7qoDeg3wke70ST8U="
         }
     }
 }

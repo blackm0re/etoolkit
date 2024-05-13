@@ -41,7 +41,9 @@ def test_instantiation(config_data):
     assert instance.master_password is None
 
 
-def test_get_environ(config_data, master_password, wrong_master_password):
+def test_get_environ(
+    config_data, master_password, short_value, wrong_master_password
+):
     """Tests the EtoolkitInstance.get_environ method"""
 
     instance = etoolkit.EtoolkitInstance('secret', config_data)
@@ -61,7 +63,7 @@ def test_get_environ(config_data, master_password, wrong_master_password):
     instance.master_password = master_password
     env = instance.get_environ()
     assert isinstance(env, dict)
-    assert env['ETOOLKIT_TEST_PASSWORD'] == 'bar'
+    assert env['ETOOLKIT_TEST_PASSWORD'] == short_value
 
 
 def test_get_full_name(config_data):

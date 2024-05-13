@@ -1,0 +1,73 @@
+cache-dir = "~/.cache/ruff"
+indent-width = 4
+line-length = 79
+target-version = "py312"
+
+[lint]
+select = ["ALL"]
+ignore = ["ANN", "COM812", "D105", "D202", "D203", "D205", "D211", "D212", "D400", "D401", "D403", "D415", "ERA001", "FBT001", "FBT002", "PTH111", "RUF012", "RUF013", "S101", "TRY300", "BLE001", "UP020", "C901", "D200", "D402", "EM101", "EM102", "FBT003", "INP001", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLW2901", "S603", "T201", "TRY003", "TRY400"]
+# D105 - Missing docstring in magic method
+# D200 - One-line docstring should fit on one line
+# D203 - 1 blank line required before class docstring
+# D205 - 1 blank line required between summary line and description
+# D403 - First word of the first line should be capitalized: `str` -> `Str`
+# FBT001 - Boolean-typed positional argument in function definition
+# FBT002 - Boolean default positional argument in function definition
+# PTH111 - `os.path.expanduser()` should be replaced by `Path.expanduser()`
+# RUF012 - Mutable class attributes should be annotated with `typing.ClassVar`
+# RUF013 - PEP 484 prohibits implicit `Optional`
+# S101 - Use of `assert` detected
+# TRY300 - Consider moving this statement to an `else` block
+# TRY400 - Use `logging.exception` instead of `logging.error`
+# UP020 - Use builtin `open`
+
+# Project specific
+# C901 - `X` is too complex
+# D200 - One-line docstring should fit on one line
+# D402 - First line should not be the function's signature (bug in ruff 0.4.4)
+# EM101 - Exception must not use a string literal, assign to variable first
+# EM102 - Exception must not use an f-string literal, assign to variable first
+# FBT003 - Boolean positional value in function call
+# INP001 - File `tests/test_envtoolkit_instance_static.py` is part of an implicit namespace package. Add an `__init__.py`.
+# PLR0912 - Too many branches
+# PLR0913 - Too many arguments in function definition
+# PLR0915 - Too many statements
+# PLR2004 - Magic value used in comparison, consider replacing `X` with a constant variable
+# PLW2901 - `for` loop variable `value` overwritten by assignment target
+# S603 - `subprocess` call: check for execution of untrusted input
+# T201 - `print` found
+# TRY003 - Avoid specifying long messages outside the exception class
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[format]
+# Like Black, use double quotes for strings.
+quote-style = "single"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = true
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+[lint.flake8-quotes]
+inline-quotes = "single"

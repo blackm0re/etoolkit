@@ -30,7 +30,7 @@ _etoolkit() {
     all_params="-d --decrypt-value -e --encrypt-value -l --list -h --help
                 -P --master-password-prompt -p --generate-master-password-hash
                 -c --config-file -E --echo -m --multiple-values -q --no-output
-                -s --spawn -v --version"
+                -r --reencrypt -s --spawn -v --version"
     # if [ ${prev:0:1} == "-" ]
 
     if [ ${COMP_CWORD} -eq 1 ]; then
@@ -76,6 +76,11 @@ _etoolkit() {
             ;;
         "-P" | "--master-password-prompt")
             COMPREPLY=($(compgen -W "-d --decrypt-value -E -e --echo --encrypt-value -m --multiple-values" -- "$cur"))
+            return
+            ;;
+        "-r" | "--reencrypt")
+            COMPREPLY=($(compgen -W "all" -- "$cur"))
+            _instances "$cur"
             return
             ;;
         "-s" | "--spawn")

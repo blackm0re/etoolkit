@@ -44,14 +44,17 @@ def test_decrypt_v1(binput, capsys, config_file, master_password):
 
 
 @unittest.mock.patch('builtins.input')
-def test_decrypt_v2(binput, capsys, config_file, master_password):
+def test_decrypt_v2(
+    binput,
+    capsys,
+    config_file,
+    master_password,
+    short_encrypted_value,
+    short_value,
+):
     """Tests v2 decryption via the CLI interface"""
 
-    binput.return_value = (
-        'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
-        'rLTBxM=$+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/E'
-        'SvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
-    )
+    binput.return_value = short_encrypted_value
     with unittest.mock.patch.dict(
         os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
@@ -59,18 +62,27 @@ def test_decrypt_v2(binput, capsys, config_file, master_password):
             main(['-c', f'{config_file}', '-d'])
         assert exit_info.type == SystemExit
         assert exit_info.value.code == 0
-        assert capsys.readouterr().out.strip() == 'Decrypted value: bar'
+        assert capsys.readouterr().out.strip() == (
+            f'Decrypted value: {short_value}'
+        )
 
 
 @unittest.mock.patch('os.urandom')
 @unittest.mock.patch('builtins.input')
 def test_encrypt_with_echo(
-    binput, urandom, capsys, non_random_bytes_61, config_file, master_password
+    binput,
+    urandom,
+    capsys,
+    non_random_bytes_57,
+    config_file,
+    master_password,
+    short_encrypted_value,
+    short_value,
 ):
     """Tests encryption via the CLI interface"""
 
-    binput.return_value = 'bar'
-    urandom.return_value = non_random_bytes_61
+    binput.return_value = short_value
+    urandom.return_value = non_random_bytes_57
     with unittest.mock.patch.dict(
         os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
@@ -79,21 +91,26 @@ def test_encrypt_with_echo(
         assert exit_info.type == SystemExit
         assert exit_info.value.code == 0
         assert capsys.readouterr().out.strip() == (
-            'Encrypted value: enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
-            'rLTBxM=$+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/E'
-            'SvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
+            f'Encrypted value: {short_encrypted_value}'
         )
 
 
 @unittest.mock.patch('os.urandom')
 @unittest.mock.patch('getpass.getpass')
 def test_encrypt_without_echo(
-    getpass, urandom, capsys, non_random_bytes_61, config_file, master_password
+    getpass,
+    urandom,
+    capsys,
+    non_random_bytes_57,
+    config_file,
+    master_password,
+    short_encrypted_value,
+    short_value,
 ):
     """Tests encryption via the CLI interface"""
 
-    getpass.return_value = 'bar'
-    urandom.return_value = non_random_bytes_61
+    getpass.return_value = short_value
+    urandom.return_value = non_random_bytes_57
     with unittest.mock.patch.dict(
         os.environ, {'ETOOLKIT_MASTER_PASSWORD': master_password}
     ):
@@ -102,13 +119,11 @@ def test_encrypt_without_echo(
         assert exit_info.type == SystemExit
         assert exit_info.value.code == 0
         assert capsys.readouterr().out.strip() == (
-            'Encrypted value: enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviq'
-            'rLTBxM=$+Yo6Ya2MAVcBLTQHuATkyFc+dzYsL/E'
-            'SvA6ofOUDsiKZvIff35cUHAmoNxVuGG+MXv4='
+            f'Encrypted value: {short_encrypted_value}'
         )
 
 
-def test_fetch_encrypted_value(config_file, master_password):
+def test_fetch_encrypted_value(config_file, master_password, short_value):
     """Tests decryption of encrypted value"""
 
     with unittest.mock.patch.dict(
@@ -116,7 +131,7 @@ def test_fetch_encrypted_value(config_file, master_password):
     ):
         assert os.environ.get('ETOOLKIT_TEST_PASSWORD') is None
         main(['-c', f'{config_file}', '-q', '-s', '/bin/false', 'secret'])
-        assert os.environ.get('ETOOLKIT_TEST_PASSWORD') == 'bar'
+        assert os.environ.get('ETOOLKIT_TEST_PASSWORD') == short_value
 
 
 def test_list(capsys, config_file, nonexistent_config_file):

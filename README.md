@@ -69,11 +69,96 @@ for processes that were not spawned by that same *etoolkit* session.
    # add sgs' custom repository using app-eselect/eselect-repository
    eselect repository add sgs
 
-   # ... or using layman (obsolete)
-   layman -a sgs
-
    emerge dev-python/etoolkit
    ```
+
+## Encryption & decryption scheme
+
+The etoolkit encryption format is currently at version 2.
+Encrypted values start with *enc-val$2$*.
+
+This new version introduces padding for values that are shorter than 32 bytes.
+The idea behind padding is to generate (32 - value length) random bytes and
+append them to the original value.
+That prevents a potential attacker from knowing the length of the encrypted
+short value (f.i. password, PIN number, username... etc).
+
+Values encrypted in the old format (*enc-val$1$*) can still be decrypted
+seamlessly.
+
+Authenticated encryption with associated data (AEAD) is implemented using
+AES-GCM.
+
+
+### Encryption
+
+Input:
+
+- plain-text value to be encrypted (P)
+
+- plain-text master-password used for key derivation (M)
+
+
+Output:
+
+- an encrypted value digest (base64) (B)
+
+
+Operation:
+
+- generate 32 bytes of random data to be used as a salt (S)
+
+- derive a 32 bytes key (K): K = scrypt(M, S, n=2**14, r=8, p=1)
+
+- use the first 12 bytes of S as nonce (NONCE)
+
+- calculate the padding length (L) as 32 - length of P, if P < 32, 0 otherwise
+
+- set the padding length bytes (N) (2bytes) to "%02d", if L > 0, "-1" otherwise
+
+- generate L bytes of random data to be used for padding (D)
+
+- encrypt and auth. P, auth.only S (E): E = AES_GCM_ENC(K, NONCE, N + P + D, S)
+
+- encrypted value digest (B) = enc-val$2$:BASE64_ENCODE(S)$BASE64_ENCODE(E)
+
+example:
+enc-val$2$uYpZM1VfAGq0CDZL2duITs076CQj+hIFEgx+F4mn80o=$UWP5YeRsh5/2vZ2J1UOS+BJti73Kbp6C1pJmCo8hFSujpe35X/XpzBegJJpo86AiCsNsUS6B6JM=
+
+
+### Decryption
+
+Input:
+
+- encrypted value digest (base64) (B)
+
+- plain-text master-password used for key derivation (M)
+
+
+Output:
+
+- plain-text password (P)
+
+
+Operation:
+
+- remove the prefix (enc-val$2$) from B and split the remaining value by '$'
+
+- base64-decode the salt (S): S = BASE64_DECODE(B1)
+
+- base64-decode the rest of the data (E): E = BASE64_DECODE(B2)
+
+- derive a 32 bytes key (K): K = scrypt(M, S, n=2**14, r=8, p=1)
+
+- use the first 12 bytes of S as nonce (NONCE)
+
+- decrypt the encrypted data (D): D = AES_GCM_DECRYPT(K, NONCE, E, S)
+
+- fetch the first 2 bytes (padding length bytes) (N): N = D[0 : 2]
+
+- calculate the padding length (L): L = INT(N) if N != "-1", 0 otherwise
+
+- fetch the plain-text (P): P = D[2 : -L] if L != 0, D[2 :] otherwise
 
 
 ## Setup and examples
@@ -201,6 +286,17 @@ One can also spawn a different process than an interactive shell by using the
    etoolkit --spawn /bin/othershell <instance-name>
    ```
 
+It is possible to re-encrypt all encrypted values in a specific instance or in
+all defined instances either by using the same or a new master password.
+
+   ```bash
+   etoolkit --reencrypt all
+   ```
+
+will prompt for the current master password, then for a new master password
+(with confirmation) and finally the new config file (if "all") or instance
+contents will be displayed.
+
 Contact the author for questions and suggestions! :)
 
 
@@ -223,11 +319,11 @@ or the *instances* structure being loaded from a diferent configuration file
 
 
    # using some static methods in order to create encrypted values
-   etoolkit.EtoolkitInstance.encrypt('the very secret passwd', 'secret1')
-   # Out: 'enc-val$1$Y/TBb1F3siHTw6qZg9ERzZfA8PLPf2CwGSQLpu9jYWw=$FT5tS9o+ABvsxogIXpJim16Gz5SVtV8='
+   etoolkit.EtoolkitInstance.encrypt('The very secret passwd', 'secret1')
+   # Out: 'enc-val$2$NDdp6WMbX7gdEyzGM5nI4jhyer4XL+BoQwAHtL2CXHw=$+Pztn1pfaXKjPpem5PIQrCNxR9pyE6zqgSoGg9qXvmhH6VsNQvUTmiaOvUFl35EbiYE='
 
-   etoolkit.EtoolkitInstance.encrypt('the very secret passwd', 'secret2')
-   # Out: 'enc-val$1$vIBcoCNiYrsDLtF41uLuSEnppBjhliD0B8jwcBJcj/c=$KwOGe/y1dlxktDaCnJPIVNuaQ4Q7yNo='
+   etoolkit.EtoolkitInstance.encrypt('The very secret passwd', 'secret2')
+   # Out: 'enc-val$2$H953GxW+qrYXIp+I97lJBmG1gv89wxcfmTu7PEpZzjE=$Tb3F8/izDbHAMklpIjYk73JAiav+w8ZhrMsO93FlQjGh4MTChjp2Yen5BxSBOWLvCD4='
 
 
    # The encrypted values will be used in our configuration structure
@@ -237,34 +333,33 @@ or the *instances* structure being loaded from a diferent configuration file
        },
        "instances": {
            "_default": {
-               "ETOOLKIT_PROMPT": "(%i)",
-               "PYTHONPATH": "/home/user/%i/python",
+             "ETOOLKIT_PROMPT": "(%i)",
+             "ETOOLKIT_SENSITIVE": ["DB_CONNECTION", "ETOOLKIT_TEST_PASSWORD"]
            },
            "dev": {
                "ETOOLKIT_PARENT": "_default",
-               "PYTHONPATH": "%p:/home/user/%i/.pythonpath",
+               "PYTHONPATH": ":/home/user/.pythonpath",
+               "DB_CONNECTION": "enc-val$2$RAgDei59tUvDAkrBmxROqRaV/NxNFEI2eJIOP7sG/b8=$yse7zawHCzQCU31sZj4oJYLGonz1M7oqHqCilXLHkywa9nMPALypmVzi3QekekYuLeb5XVTmmp84NHoPn1M052otoRHSp+TMPsqBPRabfriIKEK4XQ=="
            },
            "secret": {
                "ETOOLKIT_PARENT": "_default",
-               "ETOOLKIT_SENSITIVE": ["PASSWORD"],
                "GNUPGHOME": "%h/private/.gnupg",
-               "PASSWORD": "enc-val$1$vIBcoCNiYrsDLtF41uLuSEnppBjhliD0B8jwcBJcj/c=$KwOGe/y1dlxktDaCnJPIVNuaQ4Q7yNo="
+               "ETOOLKIT_TEST_PASSWORD": "enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviqrLTBxM=$+YYrZbwTBuG0Pl+WMQrvxLUtq5j8qYuQqzoIwgoGt7AaWZCJz+E7qoDeg3wke70ST8U="
            }
        }
    }
 
-
-   dev_instance = etoolkit.EtoolkitInstance('dev', instances)
+   secret_instance = etoolkit.EtoolkitInstance('secret', instances)
 
    # fetch the variables before the processing stage (calling get_environ())
    # since raw_env_variables is a dict, it can be modified (f.i. .update())
-   dev_instance.raw_env_variables
+   secret_instance.raw_env_variables
 
-   dev_instance.master_password = 'the very secret passwd'  # or perhaps using getpass
-   env_vars = dev_instance.get_env()
-   print(env_vars['PASSWORD'])  # outputs: 'secret2'
+   secret_instance.master_password = 'The very secret passwd'  # or perhaps using getpass
+   env_vars = secret_instance.get_environ()
+   print(env_vars['ETOOLKIT_TEST_PASSWORD'])  # outputs: 'secret1'
    
-   inst.dump_env(env_vars)  # prints all values, with the exception of 'PASSWORD'
+   secret_instance.env_to_str(env_vars)  # prints all values, with the exception of 'ETOOLKIT_TEST_PASSWORD'
 
    # set the env. variables.
    os.environ.update(env_vars)

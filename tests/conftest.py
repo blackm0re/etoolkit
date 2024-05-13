@@ -45,9 +45,9 @@ def config_data():
                 'ETOOLKIT_SENSITIVE': ['ETOOLKIT_TEST_PASSWORD'],
                 'GNUPGHOME': '%h/private/.gnupg',
                 'ETOOLKIT_TEST_PASSWORD': (
-                    'enc-val$2$v6F2M7LeUDbQWNLg6WW5mUcbuYYo7aGynSxzWAENVBI=$'
-                    'ZcyWzf9Kp0aYI8N+biKMSmu4RGGi199ayq'
-                    'EYdJl+qdq7b1HSutwYlC7UR2GsSofu4Xo='
+                    'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviqrLTBxM=$'
+                    '+YYrZbwTBuG0Pl+WMQrvxLUtq5j8qYuQqz'
+                    'oIwgoGt7AaWZCJz+E7qoDeg3wke70ST8U='
                 ),
             },
         },
@@ -64,9 +64,32 @@ def config_file(tmp_path, config_data):
 
 
 @pytest.fixture()
+def long_encrypted_value():
+    """enc. value corresponding to 'Nobody expects the Spanish inquisition'"""
+
+    return (
+        'enc-val$2$uYpZM1VfAGq0CDZL2duITs076CQj+hIFEgx+F4mn80o=$'
+        'UWP5YeRsh5/2vZ2J1UOS+BJti73Kbp6C1pJmCo8hF'
+        'Sujpe35X/XpzBegJJpo86AiCsNsUS6B6JM='
+    )
+
+
+@pytest.fixture()
+def long_value():
+    """standard value (> 32 bytes)"""
+    return 'Nobody expects the Spanish inquisition'
+
+
+@pytest.fixture()
 def master_password():
     """Master passord"""
     return 'The very secret passwd'
+
+
+@pytest.fixture()
+def new_master_password():
+    """Master passord"""
+    return 'New very secret passwd'
 
 
 @pytest.fixture()
@@ -80,13 +103,13 @@ def non_random_bytes_32():
 
 
 @pytest.fixture()
-def non_random_bytes_61():
-    """always use the same bytes instead of os.urandom(61)"""
+def non_random_bytes_57():
+    """always use the same bytes instead of os.urandom(57)"""
 
     return (
         b'D$\x99\xaa\xafiZ\xb4C\xa0%XTz)\xca\xedK\xcd\xa2F~\xff+\xa1[\xe2\xaa'
         b'\xb2\xd3\x07\x13\xedb\xc2\x84\xfe\tS\r\xf0\x02_\xef\xe3\xde\xf1?e'
-        b'\xa4s(Q\x04\xcd\xc7T\x01_D\xb1'
+        b'\xa4s(Q\x04\xcd\xc7T'
     )
 
 
@@ -105,6 +128,32 @@ def password_hash():
         'pbkdf2_sha256$500000$UY3o78KUM1Btzxk3k3JCsijnwtJ2lx+hH9NewpVKxo8=$'
         'tHwDm8OVKanC4DoYTigTCb0R3lQIa/CbBYj0B3TZtHg='
     )
+
+
+@pytest.fixture()
+def short_encrypted_value():
+    """enc. value corresponding to 'secret1'"""
+
+    return (
+        'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviqrLTBxM=$'
+        '+YYrZbwTBuG0Pl+WMQrvxLUtq5j8qYuQqzoIwgoGt7AaWZCJz+E7qoDeg3wke70ST8U='
+    )
+
+
+@pytest.fixture()
+def short_encrypted_value_v1():
+    """enc. value (enc-val 1) corresponding to 'secret1'"""
+
+    return (
+        'enc-val$1$/cXpEMoZrTlb9yokGhw8tLTSUkqnqJ4ZoAkurNgMYx'
+        'w=$1VdkSMcZnLRwLiu1M8VlYcbelwmiVNY='
+    )
+
+
+@pytest.fixture()
+def short_value():
+    """standard value (< 32 bytes)"""
+    return 'secret1'
 
 
 @pytest.fixture()

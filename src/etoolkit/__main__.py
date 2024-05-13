@@ -42,117 +42,244 @@ DEFAULT_LOG_LEVEL = logging.WARNING
 logger = logging.getLogger(__name__)
 
 
-def decrypt_value(args: argparse.Namespace, config: dict):
+class EtoolkitCLIHandler:
     """
-    Interactive function for decrypting value(s)
+    Helper class used for handleing the growing amount of arguments
 
-    Prompts for master key password and then prompts for a value to decrypt
-
-    The decrypted value is printed to stdout
-
-    :param args: The arguments sent by the caller
-    :type args: arparse.Namespace
-
-    :param config: The config dict sent by the caller
-    :type config: dict
+    This class consists mostly of interactive methods and is not intended as
+    a part of the etoolkit API
     """
-    password_hash = None
-    pipe_input = None
-    if not os.isatty(sys.stdin.fileno()):
-        pipe_input = sys.stdin.read().strip()
-    if 'general' in config:
-        password_hash = config['general'].get('MASTER_PASSWORD_HASH')
 
-    if (
-        args.master_password_prompt
-        or os.environ.get('ETOOLKIT_MASTER_PASSWORD') is None
-    ):
-        password = etoolkit.EtoolkitInstance.confirm_password_prompt(
-            password_hash, False
-        )
-    else:
-        password = os.environ.get('ETOOLKIT_MASTER_PASSWORD')
+    def __init__(self, args: argparse.Namespace, config_dict: dict):
+        """
+        :param args: The parsed argparse arguments sent by the caller
+        :type args: argparse.Namespace
 
-    if pipe_input:
-        # the input came from stdin. No need to prompt
-        print(
-            'Decrypted value: '
-            f'{etoolkit.EtoolkitInstance.decrypt(password, pipe_input)}'
-        )
-        return
-    while True:
-        try:
-            value = input('Value: ')
+        :param config_dict: The config file structure
+        :type config_dict: dict
+        """
+        self._args = args
+        self._config_dict = config_dict
+
+        self._password_hash = None
+        if 'general' in config_dict:
+            self._password_hash = config_dict['general'].get(
+                'MASTER_PASSWORD_HASH'
+            )
+
+        self._password_from_env = os.environ.get('ETOOLKIT_MASTER_PASSWORD')
+
+    def decrypt_value(self):
+        """
+        Interactive method for decrypting value(s)
+
+        Prompts for master key password and then prompts for a value to decrypt
+
+        The decrypted value is printed to stdout
+        """
+        pipe_input = None
+        if not os.isatty(sys.stdin.fileno()):
+            pipe_input = sys.stdin.read().strip()
+
+        if (
+            self._args.master_password_prompt
+            or self._password_from_env is None
+        ):
+            password = self._password_prompt()
+        else:
+            password = self._password_from_env
+
+        if pipe_input:
+            # the input came from stdin. No need to prompt
             print(
                 'Decrypted value: '
-                f'{etoolkit.EtoolkitInstance.decrypt(password, value)}'
+                f'{etoolkit.EtoolkitInstance.decrypt(password, pipe_input)}'
             )
-            if not args.multiple_values:
-                break
-        except KeyboardInterrupt:
-            print(os.linesep)
-            break
-    return
-
-
-def encrypt_value(args: argparse.Namespace, config: dict):
-    """
-    Interactive function for encrypting value(s)
-
-    Prompts for master key password and then prompts for a value to encrypt
-
-    The encrypted value is printed to stdout
-
-    :param args: The arguments sent by the caller
-    :type args: arparse.Namespace
-
-    :param config: The config dict sent by the caller
-    :type config: dict
-    """
-    password_hash = None
-    pipe_input = None
-    if not os.isatty(sys.stdin.fileno()):
-        pipe_input = sys.stdin.read().strip()
-    if 'general' in config:
-        password_hash = config['general'].get('MASTER_PASSWORD_HASH')
-
-    if (
-        args.master_password_prompt
-        or os.environ.get('ETOOLKIT_MASTER_PASSWORD') is None
-    ):
-        password = etoolkit.EtoolkitInstance.confirm_password_prompt(
-            password_hash
-        )
-    else:
-        password = os.environ.get('ETOOLKIT_MASTER_PASSWORD')
-
-    if pipe_input:
-        # the input came from stdin. No need to prompt
-        print(
-            'Encrypted value: '
-            f'{etoolkit.EtoolkitInstance.encrypt(password, pipe_input)}'
-        )
-        return
-    while True:
-        try:
-            if args.echo:
+            return
+        while True:
+            try:
                 value = input('Value: ')
-            else:
-                value = getpass.getpass('Value: ')
+                print(
+                    'Decrypted value: '
+                    f'{etoolkit.EtoolkitInstance.decrypt(password, value)}'
+                )
+                if not self._args.multiple_values:
+                    break
+            except KeyboardInterrupt:
+                print(os.linesep)
+                break
+        return
+
+    def encrypt_value(self):
+        """
+        Interactive method for encrypting value(s)
+
+        Prompts for master key password and then prompts for a value to encrypt
+
+        The encrypted value is printed to stdout
+        """
+        pipe_input = None
+        if not os.isatty(sys.stdin.fileno()):
+            pipe_input = sys.stdin.read().strip()
+
+        if (
+            self._args.master_password_prompt
+            or self._password_from_env is None
+        ):
+            password = self._password_prompt_confirm()
+        else:
+            password = self._password_from_env
+
+        if pipe_input:
+            # the input came from stdin. No need to prompt
             print(
                 'Encrypted value: '
-                f'{etoolkit.EtoolkitInstance.encrypt(password, value)}'
+                f'{etoolkit.EtoolkitInstance.encrypt(password, pipe_input)}'
             )
-            if not args.multiple_values:
+            return
+
+        while True:
+            try:
+                if self._args.echo:
+                    value = input('Value: ')
+                else:
+                    value = getpass.getpass('Value: ')
+                print(
+                    'Encrypted value: '
+                    f'{etoolkit.EtoolkitInstance.encrypt(password, value)}'
+                )
+                if not self._args.multiple_values:
+                    break
+            except KeyboardInterrupt:
+                print(os.linesep)
                 break
-        except KeyboardInterrupt:
-            print(os.linesep)
-            break
-    return
+        return
+
+    def generate_master_password_hash(self):
+        """
+        Interactive method for generating password hash
+
+        Prompts for master key password and then for confirmation
+
+        The generated hash is printed to stdout
+        """
+        phash = etoolkit.EtoolkitInstance.get_new_password_hash(
+            etoolkit.EtoolkitInstance.confirm_password_prompt()
+        )
+        print(f'Master password hash: {phash}')
+
+    def list(self):
+        """Lists all instances defined in the config file"""
+
+        for instance_name in sorted(
+            filter(
+                lambda s: not s.startswith('_'),
+                self._config_dict.get('instances', {}).keys(),
+            )
+        ):
+            print(instance_name)
+
+    def load_instance(self):
+        """Loads a single specified instance from the config file"""
+
+        inst = etoolkit.EtoolkitInstance(
+            self._args.instance, self._config_dict
+        )
+
+        if (
+            self._args.master_password_prompt
+            or self._password_from_env is None
+        ):
+            inst.prompt_func = (
+                etoolkit.EtoolkitInstance.confirm_password_prompt
+            )
+
+        env = inst.get_environ()
+
+        if self._args.dump_output:
+            print(inst.env_to_str(env))
+
+        os.environ.update(env)
+
+        if self._args.spawn:
+            subprocess.run(self._args.spawn.split(), check=False)
+        else:
+            subprocess.run(
+                os.environ.get('SHELL', 'bash').split(), check=False
+            )
+
+    def reencrypt(self):
+        """
+        Interactive method that prints new configuration data (JSON) to stdout
+
+        Prompts for master key password and then for a new password,
+        which may be the same as the current password
+
+        All existing encrypted values are decrypted using the current password
+        and then encrypted with the new password
+        """
+        print('(Current password) ', end='', flush=True)
+        if (
+            self._args.master_password_prompt
+            or self._password_from_env is None
+        ):
+            password = self._password_prompt()
+        else:
+            password = self._password_from_env
+
+        print('(New password) ', end='', flush=True)
+        new_password = etoolkit.EtoolkitInstance.confirm_password_prompt()
+
+        if self._args.reencrypt != 'all':
+            # re-encrypt a single instance
+            inst = etoolkit.EtoolkitInstance(
+                self._args.reencrypt, self._config_dict
+            )
+            print(
+                json.dumps(
+                    inst.get_reencrypted_instance_data(new_password, password),
+                    indent=4,
+                )
+            )
+            return
+
+        # re-encrypt all
+        new_config_dict = dict(self._config_dict)
+        if (
+            'general' in new_config_dict
+            and 'MASTER_PASSWORD_HASH' in new_config_dict['general']
+        ):
+            new_config_dict['general']['MASTER_PASSWORD_HASH'] = (
+                etoolkit.EtoolkitInstance.get_new_password_hash(new_password)
+            )
+
+        for instance_name in self._config_dict['instances']:
+            inst = etoolkit.EtoolkitInstance(instance_name, self._config_dict)
+            new_config_dict['instances'][instance_name] = (
+                inst.get_reencrypted_instance_data(new_password, password)
+            )
+        print(json.dumps(new_config_dict, indent=4))
+
+    def _password_prompt(self) -> str:
+        """
+        Wrapper for EtoolkitInstance.confirm_password_prompt(confirm=False)
+        """
+        return etoolkit.EtoolkitInstance.confirm_password_prompt(
+            self._password_hash, False
+        )
+
+    def _password_prompt_confirm(self) -> str:
+        """
+        Wrapper for EtoolkitInstance.confirm_password_prompt(confirm=True)
+        """
+        return etoolkit.EtoolkitInstance.confirm_password_prompt(
+            self._password_hash
+        )
 
 
 def main(inargs=None):
     """main entry point"""
+
     parser = argparse.ArgumentParser(
         prog=__package__,
         epilog=(
@@ -206,6 +333,20 @@ def main(inargs=None):
         action='store_true',
         required=False,
         help='Prompt for master password, display the generated hash and exit',
+    )
+    group.add_argument(
+        '-r',
+        '--reencrypt',
+        metavar='<instance | all>',
+        type=str,
+        default='',
+        dest='reencrypt',
+        required=False,
+        help=(
+            'Prompt for current master password, new master password and '
+            're-encrypt either all encrypted values or only those for a '
+            'given instance'
+        ),
     )
     parser.add_argument(
         '-c',
@@ -274,7 +415,7 @@ def main(inargs=None):
     try:
         with io.open(args.config_file, encoding='utf-8') as fp:
             config_dict = json.load(fp)
-    except FileNotFoundError as e:
+    except FileNotFoundError as err:
         # do not raise exception if config-file is missing for:
         # - decrypting value
         # - encrypting value
@@ -288,66 +429,38 @@ def main(inargs=None):
             config_dict = {}
         else:
             logger.error('Configuration file %s is missing', args.config_file)
-            raise SystemExit(errno.EIO) from e
-    except Exception as e:
+            raise SystemExit(errno.EIO) from err
+    except Exception as exp:
         logger.exception('Unable to parse %r', args.config_file)
-        raise SystemExit(errno.EIO) from e
+        raise SystemExit(errno.EIO) from exp
     try:
+        etoolkit_cli_handler = EtoolkitCLIHandler(args, config_dict)
         if args.decrypt_value:
-            decrypt_value(args, config_dict)
+            etoolkit_cli_handler.decrypt_value()
             sys.exit(0)
         if args.encrypt_value:
-            encrypt_value(args, config_dict)
+            etoolkit_cli_handler.encrypt_value()
             sys.exit(0)
         if args.password_hash:
-            master_password = (
-                etoolkit.EtoolkitInstance.confirm_password_prompt()
-            )
-            phash = etoolkit.EtoolkitInstance.get_new_password_hash(
-                master_password
-            )
-            print(f'Master password hash: {phash}')
+            etoolkit_cli_handler.generate_master_password_hash()
             sys.exit(0)
         if args.list:
-            for instance_name in sorted(
-                filter(
-                    lambda s: not s.startswith('_'),
-                    config_dict.get('instances', {}).keys(),
-                )
-            ):
-                print(instance_name)
+            etoolkit_cli_handler.list()
+            sys.exit(0)
+        if args.reencrypt:
+            etoolkit_cli_handler.reencrypt()
             sys.exit(0)
 
-        inst = etoolkit.EtoolkitInstance(args.instance, config_dict)
-        if (
-            args.master_password_prompt
-            or os.environ.get('ETOOLKIT_MASTER_PASSWORD') is None
-        ):
-            inst.prompt_func = (
-                etoolkit.EtoolkitInstance.confirm_password_prompt
-            )
-        env = inst.get_environ()
-
-        if args.dump_output:
-            inst.dump_env(env)
-
-        os.environ.update(env)
-
-        if args.spawn:
-            subprocess.run(args.spawn.split(), check=False)
-        else:
-            subprocess.run(
-                os.environ.get('SHELL', 'bash').split(), check=False
-            )
+        etoolkit_cli_handler.load_instance()
     except KeyboardInterrupt:
         logger.debug('KeyboardInterrupt')
         print(os.linesep)
         sys.exit(0)
-    except etoolkit.EtoolkitInstanceError as e:
-        logger.error('EtoolkitInstanceError: %s', e)
+    except etoolkit.EtoolkitInstanceError as err:
+        logger.error('EtoolkitInstanceError: %s', err)
         sys.exit(1)
-    except subprocess.CalledProcessError as e:
-        logger.error('Unable to spawn shell process: %s', e)
+    except subprocess.CalledProcessError as err:
+        logger.error('Unable to spawn shell process: %s', err)
         sys.exit(1)
     except Exception:
         logger.exception('Unexpected exception')

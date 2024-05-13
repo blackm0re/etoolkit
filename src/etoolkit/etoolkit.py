@@ -23,7 +23,6 @@ import os
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-
 MIN_ENCRYPTED_VALUE_LENGTH = 32
 
 
@@ -50,24 +49,26 @@ class EtoolkitInstance:
         self._master_password_hash = None
         self._prompt_func = None  # function to use when prompting for input
         try:
-            inst_data = data['instances'][name]
-        except KeyError as e:
-            raise EtoolkitInstanceError(f'Unknown instance "{name}"') from e
-        if inst_data.get('ETOOLKIT_PARENT'):
-            self._parent = EtoolkitInstance(inst_data['ETOOLKIT_PARENT'], data)
+            self._instance_data = data['instances'][name]
+        except KeyError as err:
+            raise EtoolkitInstanceError(f'Unknown instance "{name}"') from err
+        if self._instance_data.get('ETOOLKIT_PARENT'):
+            self._parent = EtoolkitInstance(
+                self._instance_data['ETOOLKIT_PARENT'], data
+            )
             self._raw_env_variables.update(self._parent.raw_env_variables)
             self._sensitive_env_variables.extend(
                 self._parent.sensitive_env_variables
             )
-        if inst_data.get('ETOOLKIT_SENSITIVE'):
-            if not isinstance(inst_data['ETOOLKIT_SENSITIVE'], list):
+        if self._instance_data.get('ETOOLKIT_SENSITIVE'):
+            if not isinstance(self._instance_data['ETOOLKIT_SENSITIVE'], list):
                 raise EtoolkitInstanceError(
                     '"ETOOLKIT_SENSITIVE" must be a list'
                 )
             self._sensitive_env_variables.extend(
-                inst_data['ETOOLKIT_SENSITIVE']
+                self._instance_data['ETOOLKIT_SENSITIVE']
             )
-        self._raw_env_variables.update(inst_data)
+        self._raw_env_variables.update(self._instance_data)
         # remove non env. variable data
         self._raw_env_variables.pop('ETOOLKIT_PARENT', None)
         self._raw_env_variables.pop('ETOOLKIT_SENSITIVE', None)
@@ -200,7 +201,7 @@ class EtoolkitInstance:
                 # padding_length_bytes(2 bytes) data padding (between 0 and 32)
 
                 # extract padding_length_bytes
-                if data[:2] == b'--':
+                if data[:2] == b'-1' or data[:2] == b'--':
                     data = data[2:]
                 else:
                     data = data[2 : -int(data[:2].decode())]
@@ -259,7 +260,7 @@ class EtoolkitInstance:
                 )
             )
             nonce = salt[:12]
-            padding_length_bytes = b'--'  # no padding used 2 bytes "sign"
+            padding_length_bytes = b'-1'  # no padding used 2 bytes "sign"
             edata = aesgcm.encrypt(
                 nonce, padding_length_bytes + data_bytes, salt
             )
@@ -347,18 +348,49 @@ class EtoolkitInstance:
         except Exception:
             return False
 
-    def dump_env(self, env: dict):
+    @staticmethod
+    def reencrypt(password: str, new_password: str, edata: str) -> str:
         """
-        Prints an environment dict to stdout.
+        Re-encrypts `edata` using `password` and `new_password`.
+
+        Version 2 of the etoolkit encryption format
+
+        `edata` is in the following format:
+        enc-val$`version-num`$`bas64-salt`$`base64-encrypted_data`
+
+        :param password: The password to decrypt `edata` with
+        :type password: str
+
+        :param new_password: The password to re-encrypt the plain-text with
+        :type new_password: str
+
+        :param edata: The data to be re-encrypted
+        :type edata: str
+
+        :return: The new encrypted string string
+        :rtype: str
+        """
+        return EtoolkitInstance.encrypt(
+            new_password, EtoolkitInstance.decrypt(password, edata)
+        )
+
+    def env_to_str(self, env: dict) -> str:
+        """
+        Returns a printable str. representation of the environment dict
 
         :param env: The environment dict
         :type env: dict
+
+        :return: Printable representation of the environment dict
+        :rtype: str
         """
+        env_str = ''
         for key, value in env.items():
             if key in self._sensitive_env_variables:
-                print(f'{key}: ***')
+                env_str += f'{key}: ***{os.linesep}'
                 continue
-            print(f'{key}: {value}')
+            env_str += f'{key}: {value}{os.linesep}'
+        return env_str
 
     def get_environ(self) -> dict:
         """
@@ -421,6 +453,50 @@ class EtoolkitInstance:
             return self.name
         return self._parent.get_full_name(delimiter) + delimiter + self.name
 
+    def get_reencrypted_instance_data(
+        self, new_password: str, password: str = None
+    ) -> dict:
+        """
+        Returns new instance data (dict) containing new encrypted values
+
+        Each encrypted value in this instance is decrypted using `password`
+        and then encrypted again using `new_password`
+
+        If `password` is None, master_password is not set earlier for this
+        instance and 'ETOOLKIT_MASTER_PASSWORD' is not set,
+        the prompt function will be called
+
+        :param new_password: The password to reencrypt with
+        :type new_password: str
+
+        :param password: The password to decrypt current encrypted values with
+        :type password: str or None
+
+        :return: New instance data
+        :rtype: dict
+        """
+        if password is None:
+            password = self._master_password
+
+        if password is None and self._prompt_func is None:
+            password = os.environ.get('ETOOLKIT_MASTER_PASSWORD')
+            if password is None:
+                raise EtoolkitInstanceError(
+                    'Neither password or prompt function set'
+                )
+
+        if password is None:
+            password = self._prompt_func(
+                self._master_password_hash, confirm=False
+            )
+
+        new_data = dict(self._instance_data)
+        for key, value in self._instance_data.items():
+            if isinstance(value, str) and value.startswith('enc-val$'):
+                new_data[key] = self.reencrypt(password, new_password, value)
+
+        return new_data
+
     def _decrypt_value(self, evalue: str) -> str:
         """
         Decrypts an encrypted value using the master password
@@ -452,4 +528,4 @@ class EtoolkitInstance:
                 self.master_password = self._prompt_func(
                     self._master_password_hash, confirm=False
                 )
-        return EtoolkitInstance.decrypt(self._master_password, evalue)
+        return self.decrypt(self._master_password, evalue)
