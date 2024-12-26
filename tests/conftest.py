@@ -49,6 +49,11 @@ def config_data():
                     '+YYrZbwTBuG0Pl+WMQrvxLUtq5j8qYuQqz'
                     'oIwgoGt7AaWZCJz+E7qoDeg3wke70ST8U='
                 ),
+                'ETOOLKIT_TEST_PASSWORD2': (
+                    'enc-val$2$RCSZqq9pWrRDoCVYVHopyu1LzaJGfv8roVviqrLTBxM=$'
+                    '+YYrZbwTBuG0Pl+WMQrvxLUtq5j8qYuQqz'
+                    'oIwgoGt7AaWZCJz+E7qoDeg3wke70ST8U='
+                ),
             },
         },
     }

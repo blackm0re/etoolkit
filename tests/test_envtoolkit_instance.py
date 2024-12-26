@@ -31,7 +31,8 @@ def test_instantiation(config_data):
     instance = etoolkit.EtoolkitInstance('secret', config_data)
     assert 'ETOOLKIT_PARENT' not in instance.raw_env_variables
     assert 'ETOOLKIT_SENSITIVE' not in instance.raw_env_variables
-    assert 'DB_CONNECTION' not in instance.sensitive_env_variables
+    assert 'GNUPGHOME' not in instance.sensitive_env_variables
+    assert 'ETOOLKIT_TEST_PASSWORD2' not in instance.sensitive_env_variables
     assert 'ETOOLKIT_TEST_PASSWORD' in instance.sensitive_env_variables
     assert instance.name == 'secret'
     assert (
@@ -64,6 +65,7 @@ def test_get_environ(
     env = instance.get_environ()
     assert isinstance(env, dict)
     assert env['ETOOLKIT_TEST_PASSWORD'] == short_value
+    assert 'ETOOLKIT_TEST_PASSWORD2' in instance.sensitive_env_variables
 
 
 def test_get_full_name(config_data):

@@ -297,6 +297,10 @@ will prompt for the current master password, then for a new master password
 (with confirmation) and finally the new config file (if "all") or instance
 contents will be displayed.
 
+The values of variables listed in *ETOOLKIT_SENSITIVE* will not be displayed
+when an instance is loaded. The keys of encrypted values will be be added to
+*ETOOLKIT_SENSITIVE* implicitly.
+
 Contact the author for questions and suggestions! :)
 
 

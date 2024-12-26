@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.0](https://github.com/blackm0re/etoolkit/tree/2.1.0) (2024-12-26)
+
+[Full Changelog](https://github.com/blackm0re/etoolkit/compare/2.0.0...2.1.0)
+
+**Changes:**
+
+- add encrypted values to *ETOOLKIT_SENSITIVE* implicitly
+
+
 ## [2.0.0](https://github.com/blackm0re/etoolkit/tree/2.0.0) (2024-05-13)
 
 [Full Changelog](https://github.com/blackm0re/etoolkit/compare/1.2.0...2.0.0)

@@ -43,6 +43,7 @@ class EtoolkitInstance:
         """
         self._name = name
         self._parent = None
+        self._env = None
         self._raw_env_variables = {}
         self._sensitive_env_variables = []
         self._master_password = None
@@ -57,9 +58,6 @@ class EtoolkitInstance:
                 self._instance_data['ETOOLKIT_PARENT'], data
             )
             self._raw_env_variables.update(self._parent.raw_env_variables)
-            self._sensitive_env_variables.extend(
-                self._parent.sensitive_env_variables
-            )
         if self._instance_data.get('ETOOLKIT_SENSITIVE'):
             if not isinstance(self._instance_data['ETOOLKIT_SENSITIVE'], list):
                 raise EtoolkitInstanceError(
@@ -399,6 +397,9 @@ class EtoolkitInstance:
         :return: New environment dict with all macros replaced by their values
         :rtype: dict
         """
+        if self._env is not None:
+            return self._env
+
         macros = {
             '%h': os.path.expanduser('~'),
             '%i': self.name,
@@ -419,6 +420,8 @@ class EtoolkitInstance:
                 )
             if isinstance(value, str) and value.startswith('enc-val$'):
                 value = self._decrypt_value(value)
+                if key not in self._sensitive_env_variables:
+                    self._sensitive_env_variables.append(key)
             if isinstance(value, str) and value.endswith(':'):
                 # if 'value' ends with ':', append the existing value of
                 # os.environ[key] after the value of 'value'
@@ -434,6 +437,15 @@ class EtoolkitInstance:
             else:
                 # completely overwrite the existing value of os.environ[key]
                 new_env[key] = self.parse_value(value, macros)
+
+        # add the sensitive variables list of the parent (if any)
+        if self._parent is not None:
+            self._sensitive_env_variables.extend(
+                self._parent.sensitive_env_variables
+            )
+
+        self._env = new_env
+
         return new_env
 
     def get_full_name(self, delimiter: str = '') -> str:
